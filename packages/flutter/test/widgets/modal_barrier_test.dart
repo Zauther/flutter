@@ -3,19 +3,18 @@
 // found in the LICENSE file.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart' show kSecondaryButton, PointerDeviceKind;
 
 import 'semantics_tester.dart';
 
 void main() {
-  bool tapped;
-  bool hovered;
-  Widget tapTarget;
-  Widget hoverTarget;
+  late bool tapped;
+  late bool hovered;
+  late Widget tapTarget;
+  late Widget hoverTarget;
 
   setUp(() {
     tapped = false;
@@ -53,7 +52,7 @@ void main() {
     );
 
     await tester.pumpWidget(subject);
-    await tester.tap(find.text('target'));
+    await tester.tap(find.text('target'), warnIfMissed: false);
     await tester.pumpWidget(subject);
     expect(tapped, isFalse,
       reason: 'because the tap is not prevented by ModalBarrier');
@@ -163,10 +162,36 @@ void main() {
     hovered = false;
   });
 
-  testWidgets('ModalBarrier pops the Navigator when dismissed by primay tap', (WidgetTester tester) async {
+  testWidgets('ModalBarrier plays system alert sound when user tries to dismiss it', (WidgetTester tester) async {
+    final List<String> playedSystemSounds = <String>[];
+    try {
+      SystemChannels.platform.setMockMethodCallHandler((MethodCall methodCall) async {
+        if (methodCall.method == 'SystemSound.play')
+          playedSystemSounds.add(methodCall.arguments as String);
+      });
+
+      final Widget subject = Stack(
+        textDirection: TextDirection.ltr,
+        children: <Widget>[
+          tapTarget,
+          const ModalBarrier(dismissible: false),
+        ],
+      );
+
+      await tester.pumpWidget(subject);
+      await tester.tap(find.text('target'), warnIfMissed: false);
+      await tester.pumpWidget(subject);
+    } finally {
+      SystemChannels.platform.setMockMethodCallHandler(null);
+    }
+    expect(playedSystemSounds, hasLength(1));
+    expect(playedSystemSounds[0], SystemSoundType.alert.toString());
+  });
+
+  testWidgets('ModalBarrier pops the Navigator when dismissed by primary tap', (WidgetTester tester) async {
     final Map<String, WidgetBuilder> routes = <String, WidgetBuilder>{
-      '/': (BuildContext context) => FirstWidget(),
-      '/modal': (BuildContext context) => SecondWidget(),
+      '/': (BuildContext context) => const FirstWidget(),
+      '/modal': (BuildContext context) => const SecondWidget(),
     };
 
     await tester.pumpWidget(MaterialApp(routes: routes));
@@ -195,8 +220,8 @@ void main() {
 
   testWidgets('ModalBarrier pops the Navigator when dismissed by non-primary tap', (WidgetTester tester) async {
     final Map<String, WidgetBuilder> routes = <String, WidgetBuilder>{
-      '/': (BuildContext context) => FirstWidget(),
-      '/modal': (BuildContext context) => SecondWidget(),
+      '/': (BuildContext context) => const FirstWidget(),
+      '/modal': (BuildContext context) => const SecondWidget(),
     };
 
     await tester.pumpWidget(MaterialApp(routes: routes));
@@ -226,8 +251,8 @@ void main() {
 
   testWidgets('ModalBarrier may pop the Navigator when competing with other gestures', (WidgetTester tester) async {
     final Map<String, WidgetBuilder> routes = <String, WidgetBuilder>{
-      '/': (BuildContext context) => FirstWidget(),
-      '/modal': (BuildContext context) => SecondWidgetWithCompetence (),
+      '/': (BuildContext context) => const FirstWidget(),
+      '/modal': (BuildContext context) => const SecondWidgetWithCompetence(),
     };
 
     await tester.pumpWidget(MaterialApp(routes: routes));
@@ -252,10 +277,10 @@ void main() {
   testWidgets('ModalBarrier does not pop the Navigator with a WillPopScope that returns false', (WidgetTester tester) async {
     bool willPopCalled = false;
     final Map<String, WidgetBuilder> routes = <String, WidgetBuilder>{
-      '/': (BuildContext context) => FirstWidget(),
+      '/': (BuildContext context) => const FirstWidget(),
       '/modal': (BuildContext context) => Stack(
         children: <Widget>[
-          SecondWidget(),
+          const SecondWidget(),
           WillPopScope(
             child: const SizedBox(),
             onWillPop: () async {
@@ -292,10 +317,10 @@ void main() {
   testWidgets('ModalBarrier pops the Navigator with a WillPopScope that returns true', (WidgetTester tester) async {
     bool willPopCalled = false;
     final Map<String, WidgetBuilder> routes = <String, WidgetBuilder>{
-      '/': (BuildContext context) => FirstWidget(),
+      '/': (BuildContext context) => const FirstWidget(),
       '/modal': (BuildContext context) => Stack(
         children: <Widget>[
-          SecondWidget(),
+          const SecondWidget(),
           WillPopScope(
             child: const SizedBox(),
             onWillPop: () async {
@@ -340,8 +365,6 @@ void main() {
   });
 
   testWidgets('Dismissible ModalBarrier includes button in semantic tree on iOS', (WidgetTester tester) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-
     final SemanticsTester semantics = SemanticsTester(tester);
     await tester.pumpWidget(const Directionality(
       textDirection: TextDirection.ltr,
@@ -355,7 +378,7 @@ void main() {
       children: <TestSemantics>[
         TestSemantics.rootChild(
           rect: TestSemantics.fullScreen,
-          actions: SemanticsAction.tap.index,
+          actions: <SemanticsAction>[SemanticsAction.tap, SemanticsAction.dismiss],
           label: 'Dismiss',
           textDirection: TextDirection.ltr,
         ),
@@ -364,8 +387,7 @@ void main() {
     expect(semantics, hasSemantics(expectedSemantics, ignoreId: true));
 
     semantics.dispose();
-    debugDefaultTargetPlatformOverride = null;
-  });
+  }, variant: const TargetPlatformVariant(<TargetPlatform>{ TargetPlatform.iOS,  TargetPlatform.macOS }));
 
   testWidgets('Dismissible ModalBarrier is hidden on Android (back button is used to dismiss)', (WidgetTester tester) async {
     final SemanticsTester semantics = SemanticsTester(tester);
@@ -376,23 +398,41 @@ void main() {
 
     semantics.dispose();
   });
+
+  testWidgets('ModalBarrier uses default mouse cursor', (WidgetTester tester) async {
+    await tester.pumpWidget(Stack(
+      textDirection: TextDirection.ltr,
+      children: const <Widget>[
+        MouseRegion(cursor: SystemMouseCursors.click),
+        ModalBarrier(dismissible: false),
+      ],
+    ));
+
+    final TestGesture gesture = await tester.createGesture(kind: PointerDeviceKind.mouse, pointer: 1);
+    await gesture.addPointer(location: tester.getCenter(find.byType(ModalBarrier)));
+    addTearDown(gesture.removePointer);
+
+    await tester.pump();
+
+    expect(RendererBinding.instance!.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.basic);
+  });
 }
 
 class FirstWidget extends StatelessWidget {
+  const FirstWidget({ Key? key }) : super(key: key);
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
         Navigator.pushNamed(context, '/modal');
       },
-      child: Container(
-        child: const Text('X'),
-      ),
+      child: const Text('X'),
     );
   }
 }
 
 class SecondWidget extends StatelessWidget {
+  const SecondWidget({ Key? key }) : super(key: key);
   @override
   Widget build(BuildContext context) {
     return const ModalBarrier(
@@ -403,6 +443,7 @@ class SecondWidget extends StatelessWidget {
 }
 
 class SecondWidgetWithCompetence extends StatelessWidget {
+  const SecondWidgetWithCompetence({ Key? key }) : super(key: key);
   @override
   Widget build(BuildContext context) {
     return Stack(

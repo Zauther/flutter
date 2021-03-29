@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+
 import 'dart:async';
 import 'dart:ui';
 
@@ -58,13 +59,13 @@ class ApplicationSwitcherDescription {
   const ApplicationSwitcherDescription({ this.label, this.primaryColor });
 
   /// A label and description of the current state of the application.
-  final String label;
+  final String? label;
 
   /// The application's primary color.
   ///
   /// This may influence the color that the operating system uses to represent
   /// the application.
-  final int primaryColor;
+  final int? primaryColor;
 }
 
 /// Specifies a system overlay at a particular location.
@@ -83,6 +84,7 @@ enum SystemUiOverlay {
 /// Specifies a preference for the style of the system overlays.
 ///
 /// Used by [SystemChrome.setSystemUIOverlayStyle].
+@immutable
 class SystemUiOverlayStyle {
   /// Creates a new [SystemUiOverlayStyle].
   const SystemUiOverlayStyle({
@@ -97,32 +99,34 @@ class SystemUiOverlayStyle {
   /// The color of the system bottom navigation bar.
   ///
   /// Only honored in Android versions O and greater.
-  final Color systemNavigationBarColor;
+  final Color? systemNavigationBarColor;
 
   /// The color of the divider between the system's bottom navigation bar and the app's content.
   ///
   /// Only honored in Android versions P and greater.
-  final Color systemNavigationBarDividerColor;
+  final Color? systemNavigationBarDividerColor;
 
   /// The brightness of the system navigation bar icons.
   ///
   /// Only honored in Android versions O and greater.
-  final Brightness systemNavigationBarIconBrightness;
+  /// When set to [Brightness.light], the system navigation bar icons are light.
+  /// When set to [Brightness.dark], the system navigation bar icons are dark.
+  final Brightness? systemNavigationBarIconBrightness;
 
   /// The color of top status bar.
   ///
   /// Only honored in Android version M and greater.
-  final Color statusBarColor;
+  final Color? statusBarColor;
 
   /// The brightness of top status bar.
   ///
   /// Only honored in iOS.
-  final Brightness statusBarBrightness;
+  final Brightness? statusBarBrightness;
 
   /// The brightness of the top status bar icons.
   ///
   /// Only honored in Android version M and greater.
-  final Brightness statusBarIconBrightness;
+  final Brightness? statusBarIconBrightness;
 
   /// System overlays should be drawn with a light color. Intended for
   /// applications with a dark background.
@@ -163,12 +167,12 @@ class SystemUiOverlayStyle {
 
   /// Creates a copy of this theme with the given fields replaced with new values.
   SystemUiOverlayStyle copyWith({
-    Color systemNavigationBarColor,
-    Color systemNavigationBarDividerColor,
-    Color statusBarColor,
-    Brightness statusBarBrightness,
-    Brightness statusBarIconBrightness,
-    Brightness systemNavigationBarIconBrightness,
+    Color? systemNavigationBarColor,
+    Color? systemNavigationBarDividerColor,
+    Color? statusBarColor,
+    Brightness? statusBarBrightness,
+    Brightness? statusBarIconBrightness,
+    Brightness? systemNavigationBarIconBrightness,
   }) {
     return SystemUiOverlayStyle(
       systemNavigationBarColor: systemNavigationBarColor ?? this.systemNavigationBarColor,
@@ -193,7 +197,7 @@ class SystemUiOverlayStyle {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (other.runtimeType != runtimeType)
       return false;
     return other is SystemUiOverlayStyle
@@ -207,12 +211,14 @@ class SystemUiOverlayStyle {
 }
 
 List<String> _stringify(List<dynamic> list) => <String>[
-  for (dynamic item in list) item.toString(),
+  for (final dynamic item in list) item.toString(),
 ];
 
 /// Controls specific aspects of the operating system's graphical interface and
 /// how it interacts with the application.
 class SystemChrome {
+  // This class is not meant to be instantiated or extended; this constructor
+  // prevents instantiation and extension.
   SystemChrome._();
 
   /// Specifies the set of orientations the application interface can
@@ -319,39 +325,42 @@ class SystemChrome {
   /// If a particular style is not supported on the platform, selecting it will
   /// have no effect.
   ///
-  /// {@tool sample}
+  /// {@tool snippet}
   /// ```dart
   /// @override
   /// Widget build(BuildContext context) {
   ///   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
-  ///   return Placeholder();
+  ///   return const Placeholder();
   /// }
   /// ```
   /// {@end-tool}
   ///
   /// For more complex control of the system overlay styles, consider using
-  /// an [AnnotatedRegion] widget instead of calling [setSystemUiOverlayStyle]
+  /// an [AnnotatedRegion] widget instead of calling [setSystemUIOverlayStyle]
   /// directly. This widget places a value directly into the layer tree where
   /// it can be hit-tested by the framework. On every frame, the framework will
   /// hit-test and select the annotated region it finds under the status and
   /// navigation bar and synthesize them into a single style. This can be used
   /// to configure the system styles when an app bar is not used.
   ///
-  /// {@tool snippet --template=stateful_widget_material}
+  /// {@tool sample --template=stateful_widget_material}
   /// The following example creates a widget that changes the status bar color
   /// to a random value on Android.
   ///
-  /// ```dart imports
-  /// import 'package:flutter/services.dart';
+  /// ```dart dartImports
   /// import 'dart:math' as math;
   /// ```
   ///
+  /// ```dart imports
+  /// import 'package:flutter/services.dart';
+  /// ```
+  ///
   /// ```dart
-  /// final _random = math.Random();
+  /// final math.Random _random = math.Random();
   /// SystemUiOverlayStyle _currentStyle = SystemUiOverlayStyle.light;
   ///
   /// void _changeColor() {
-  ///   final color = Color.fromRGBO(
+  ///   final Color color = Color.fromRGBO(
   ///     _random.nextInt(255),
   ///     _random.nextInt(255),
   ///     _random.nextInt(255),
@@ -366,10 +375,10 @@ class SystemChrome {
   ///
   /// @override
   /// Widget build(BuildContext context) {
-  ///   return AnnotatedRegion(
+  ///   return AnnotatedRegion<SystemUiOverlayStyle>(
   ///     value: _currentStyle,
   ///     child: Center(
-  ///       child: RaisedButton(
+  ///       child: ElevatedButton(
   ///         child: const Text('Change Color'),
   ///         onPressed: _changeColor,
   ///        ),
@@ -400,7 +409,7 @@ class SystemChrome {
       if (_pendingStyle != _latestStyle) {
         SystemChannels.platform.invokeMethod<void>(
           'SystemChrome.setSystemUIOverlayStyle',
-          _pendingStyle._toMap(),
+          _pendingStyle!._toMap(),
         );
         _latestStyle = _pendingStyle;
       }
@@ -408,10 +417,10 @@ class SystemChrome {
     });
   }
 
-  static SystemUiOverlayStyle _pendingStyle;
+  static SystemUiOverlayStyle? _pendingStyle;
 
   /// The last style that was set using [SystemChrome.setSystemUIOverlayStyle].
   @visibleForTesting
-  static SystemUiOverlayStyle get latestStyle => _latestStyle;
-  static SystemUiOverlayStyle _latestStyle;
+  static SystemUiOverlayStyle? get latestStyle => _latestStyle;
+  static SystemUiOverlayStyle? _latestStyle;
 }

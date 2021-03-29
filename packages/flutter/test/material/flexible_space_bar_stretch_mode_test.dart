@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 final Key blockKey = UniqueKey();
@@ -61,13 +60,11 @@ void main() {
                 flexibleSpace: RepaintBoundary(
                   child: FlexibleSpaceBar(
                     stretchModes: const <StretchMode>[StretchMode.blurBackground],
-                    background: Container(
-                      child: Row(
-                        children: <Widget>[
-                          Expanded(child: Container(color: Colors.red)),
-                          Expanded(child:Container(color: Colors.blue)),
-                        ],
-                      )
+                    background: Row(
+                      children: <Widget>[
+                        Expanded(child: Container(color: Colors.red)),
+                        Expanded(child:Container(color: Colors.blue)),
+                      ],
                     ),
                   ),
                 ),
@@ -85,7 +82,7 @@ void main() {
       find.byType(FlexibleSpaceBar),
       matchesGoldenFile('flexible_space_bar_stretch_mode.blur_background.png'),
     );
-  }, skip: isBrowser);
+  });
 
   testWidgets('FlexibleSpaceBar stretch mode fadeTitle', (WidgetTester tester) async {
     await tester.pumpWidget(

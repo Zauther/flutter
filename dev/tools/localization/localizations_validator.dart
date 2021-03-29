@@ -38,7 +38,7 @@ void validateEnglishLocalizations(File file) {
 
   final Map<String, dynamic> bundle = json.decode(file.readAsStringSync()) as Map<String, dynamic>;
 
-  for (String resourceId in bundle.keys) {
+  for (final String resourceId in bundle.keys) {
     if (resourceId.startsWith('@'))
       continue;
 
@@ -55,7 +55,7 @@ void validateEnglishLocalizations(File file) {
     errorMessages.writeln('A value was not specified for @$resourceId');
   }
 
-  for (String atResourceId in bundle.keys) {
+  for (final String atResourceId in bundle.keys) {
     if (!atResourceId.startsWith('@'))
       continue;
 
@@ -67,8 +67,9 @@ void validateEnglishLocalizations(File file) {
       continue;
     }
 
+    final bool optional = atResource.containsKey('optional');
     final String description = atResource['description'] as String;
-    if (description == null)
+    if (description == null && !optional)
       errorMessages.writeln('No description specified for $atResourceId');
 
     final String plural = atResource['plural'] as String;
@@ -78,7 +79,7 @@ void validateEnglishLocalizations(File file) {
       if (!bundle.containsKey(resourceIdOther))
         errorMessages.writeln('Default plural resource $resourceIdOther undefined');
     } else {
-      if (!bundle.containsKey(resourceId))
+      if (!optional && !bundle.containsKey(resourceId))
         errorMessages.writeln('No matching $resourceId defined for $atResourceId');
     }
   }

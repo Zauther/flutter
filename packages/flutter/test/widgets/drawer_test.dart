@@ -5,10 +5,8 @@
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter/gestures.dart' show DragStartBehavior;
 
 import 'semantics_tester.dart';
@@ -17,7 +15,7 @@ void main() {
 
   testWidgets('Drawer control test', (WidgetTester tester) async {
     final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-    BuildContext savedContext;
+    late BuildContext savedContext;
     await tester.pumpWidget(
       MaterialApp(
         home: Builder(
@@ -34,7 +32,7 @@ void main() {
     );
     await tester.pump(); // no effect
     expect(find.text('drawer'), findsNothing);
-    scaffoldKey.currentState.openDrawer();
+    scaffoldKey.currentState!.openDrawer();
     await tester.pump(); // drawer should be starting to animate in
     expect(find.text('drawer'), findsOneWidget);
     await tester.pump(const Duration(seconds: 1)); // animation done
@@ -59,7 +57,7 @@ void main() {
     );
     await tester.pump(); // no effect
     expect(find.text('drawer'), findsNothing);
-    scaffoldKey.currentState.openDrawer();
+    scaffoldKey.currentState!.openDrawer();
     await tester.pump(); // drawer should be starting to animate in
     expect(find.text('drawer'), findsOneWidget);
     await tester.pump(const Duration(seconds: 1)); // animation done
@@ -97,7 +95,7 @@ void main() {
               onEnter: (_) { logs.add('enter'); },
               onHover: (_) { logs.add('hover'); },
               onExit: (_) { logs.add('exit'); },
-              child: Container(width: 10, height: 10),
+              child: const SizedBox(width: 10, height: 10),
             ),
           ),
         ),
@@ -118,7 +116,7 @@ void main() {
     logs.clear();
 
     // When drawer is open, hover is uninteractable
-    scaffoldKey.currentState.openDrawer();
+    scaffoldKey.currentState!.openDrawer();
     await tester.pump(const Duration(seconds: 1)); // animation done
     expect(find.text('drawer'), findsOneWidget);
 
@@ -172,7 +170,7 @@ void main() {
       ),
     );
     expect(find.text('drawer'), findsNothing);
-    scaffoldKey.currentState.openDrawer();
+    scaffoldKey.currentState!.openDrawer();
     await tester.pump(); // drawer should be starting to animate in
     expect(find.text('drawer'), findsOneWidget);
     await tester.pump(const Duration(seconds: 1)); // animation done
@@ -226,7 +224,7 @@ void main() {
       ),
     );
     expect(find.text('drawer'), findsNothing);
-    scaffoldKey.currentState.openDrawer();
+    scaffoldKey.currentState!.openDrawer();
     await tester.pump(); // drawer should be starting to animate in
     expect(find.text('drawer'), findsOneWidget);
     await tester.pump(const Duration(seconds: 1)); // animation done
@@ -268,18 +266,16 @@ void main() {
                 child: ListView(
                   children: <Widget>[
                     const Text('drawer'),
-                    FlatButton(
+                    TextButton(
                       child: const Text('close'),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
               ),
-              body: Container(
-                child: FlatButton(
-                  child: const Text('button'),
-                  onPressed: () { buttonPressed = true; },
-                ),
+              body: TextButton(
+                child: const Text('button'),
+                onPressed: () { buttonPressed = true; },
               ),
             );
           },
@@ -288,7 +284,7 @@ void main() {
     );
 
     // Open the drawer.
-    scaffoldKey.currentState.openDrawer();
+    scaffoldKey.currentState!.openDrawer();
     await tester.pump(); // drawer should be starting to animate in
     expect(find.text('drawer'), findsOneWidget);
 
@@ -304,9 +300,7 @@ void main() {
     expect(buttonPressed, equals(true));
   });
 
-  testWidgets('Dismissible ModalBarrier includes button in semantic tree on iOS', (WidgetTester tester) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-
+  testWidgets('Dismissible ModalBarrier includes button in semantic tree', (WidgetTester tester) async {
     final SemanticsTester semantics = SemanticsTester(tester);
     final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -324,15 +318,14 @@ void main() {
     );
 
     // Open the drawer.
-    scaffoldKey.currentState.openDrawer();
+    scaffoldKey.currentState!.openDrawer();
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(semantics, includesNodeWith(actions: <SemanticsAction>[SemanticsAction.tap]));
+    expect(semantics, includesNodeWith(label: 'Dismiss'));
 
     semantics.dispose();
-
-    debugDefaultTargetPlatformOverride = null;
-  });
+  }, variant: const TargetPlatformVariant(<TargetPlatform>{ TargetPlatform.iOS,  TargetPlatform.macOS }));
 
   testWidgets('Dismissible ModalBarrier is hidden on Android (back button is used to dismiss)', (WidgetTester tester) async {
     final SemanticsTester semantics = SemanticsTester(tester);
@@ -353,13 +346,14 @@ void main() {
     );
 
     // Open the drawer.
-    scaffoldKey.currentState.openDrawer();
+    scaffoldKey.currentState!.openDrawer();
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(semantics, isNot(includesNodeWith(actions: <SemanticsAction>[SemanticsAction.tap])));
+    expect(semantics, isNot(includesNodeWith(label: 'Dismiss')));
 
     semantics.dispose();
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('Drawer contains route semantics flags', (WidgetTester tester) async {
     final SemanticsTester semantics = SemanticsTester(tester);
@@ -380,7 +374,7 @@ void main() {
     );
 
     // Open the drawer.
-    scaffoldKey.currentState.openDrawer();
+    scaffoldKey.currentState!.openDrawer();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 

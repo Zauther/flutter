@@ -18,7 +18,7 @@ void main() {
         home: Transform.scale(
           scale: 2.0,
           child: Center(
-            child: Container(
+            child: SizedBox(
               width: 200,
               child: ListView.builder(
                 controller: controller,
@@ -26,7 +26,7 @@ void main() {
                 itemBuilder: (BuildContext context, int index) {
                   return Container(
                     height: 100.0,
-                    color: index % 2 == 0 ? Colors.blue : Colors.red,
+                    color: index.isEven ? Colors.blue : Colors.red,
                     child: Text('Tile $index'),
                   );
                 },
@@ -62,7 +62,7 @@ void main() {
         home: Transform.scale(
           scale: 0.5,
           child: Center(
-            child: Container(
+            child: SizedBox(
               width: 200,
               child: ListView.builder(
                 controller: controller,
@@ -70,7 +70,7 @@ void main() {
                 itemBuilder: (BuildContext context, int index) {
                   return Container(
                     height: 100.0,
-                    color: index % 2 == 0 ? Colors.blue : Colors.red,
+                    color: index.isEven ? Colors.blue : Colors.red,
                     child: Text('Tile $index'),
                   );
                 },
@@ -106,7 +106,7 @@ void main() {
         home: Transform.rotate(
           angle: math.pi / 2,
           child: Center(
-            child: Container(
+            child: SizedBox(
               width: 200,
               child: ListView.builder(
                 controller: controller,
@@ -114,7 +114,7 @@ void main() {
                 itemBuilder: (BuildContext context, int index) {
                   return Container(
                     height: 100.0,
-                    color: index % 2 == 0 ? Colors.blue : Colors.red,
+                    color: index.isEven ? Colors.blue : Colors.red,
                     child: Text('Tile $index'),
                   );
                 },
@@ -148,7 +148,7 @@ void main() {
             ..setEntry(3, 2, 0.001)
             ..rotateX(math.pi / 4),
           child: Center(
-            child: Container(
+            child: SizedBox(
               width: 200,
               child: ListView.builder(
                 controller: controller,
@@ -156,7 +156,7 @@ void main() {
                 itemBuilder: (BuildContext context, int index) {
                   return Container(
                     height: 100.0,
-                    color: index % 2 == 0 ? Colors.blue : Colors.red,
+                    color: index.isEven ? Colors.blue : Colors.red,
                     child: Text('Tile $index'),
                   );
                 },
@@ -214,5 +214,5 @@ void main() {
     // coordinate space of the screen, the scroll view actually moved far more
     // pixels in its local coordinate system due to the perspective transform.
     expect(controller.offset, greaterThan(100));
-  }, skip: isBrowser);
+  });
 }

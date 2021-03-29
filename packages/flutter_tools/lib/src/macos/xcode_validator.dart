@@ -2,15 +2,24 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import '../base/context.dart';
+// @dart = 2.8
+
+import 'package:meta/meta.dart';
+
 import '../base/user_messages.dart';
 import '../doctor.dart';
 import 'xcode.dart';
 
-XcodeValidator get xcodeValidator => context.get<XcodeValidator>();
-
 class XcodeValidator extends DoctorValidator {
-  const XcodeValidator() : super('Xcode - develop for iOS and macOS');
+  XcodeValidator({
+    @required Xcode xcode,
+    @required UserMessages userMessages,
+  }) : _xcode = xcode,
+      _userMessages = userMessages,
+      super('Xcode - develop for iOS and macOS');
+
+  final Xcode _xcode;
+  final UserMessages _userMessages;
 
   @override
   Future<ValidationResult> validate() async {
@@ -18,39 +27,41 @@ class XcodeValidator extends DoctorValidator {
     ValidationType xcodeStatus = ValidationType.missing;
     String xcodeVersionInfo;
 
-    if (xcode.isInstalled) {
+    if (_xcode.isInstalled) {
       xcodeStatus = ValidationType.installed;
 
-      messages.add(ValidationMessage(userMessages.xcodeLocation(xcode.xcodeSelectPath)));
+      messages.add(ValidationMessage(_userMessages.xcodeLocation(_xcode.xcodeSelectPath)));
+      messages.add(ValidationMessage(_xcode.versionText));
 
-      xcodeVersionInfo = xcode.versionText;
-      if (xcodeVersionInfo.contains(',')) {
-        xcodeVersionInfo = xcodeVersionInfo.substring(0, xcodeVersionInfo.indexOf(','));
+      if (!_xcode.isInstalledAndMeetsVersionCheck) {
+        xcodeStatus = ValidationType.partial;
+        messages.add(ValidationMessage.error(_userMessages.xcodeOutdated(
+          _xcode.currentVersion.toString(),
+          xcodeRecommendedVersion.toString(),
+        )));
+      } else if (!_xcode.isRecommendedVersionSatisfactory) {
+        xcodeStatus = ValidationType.partial;
+        messages.add(ValidationMessage.hint(_userMessages.xcodeOutdated(
+          _xcode.currentVersion.toString(),
+          xcodeRecommendedVersion.toString(),
+        )));
       }
-      messages.add(ValidationMessage(xcode.versionText));
 
-      if (!xcode.isInstalledAndMeetsVersionCheck) {
+      if (!_xcode.eulaSigned) {
         xcodeStatus = ValidationType.partial;
-        messages.add(ValidationMessage.error(
-            userMessages.xcodeOutdated(kXcodeRequiredVersionMajor, kXcodeRequiredVersionMinor)
-        ));
+        messages.add(ValidationMessage.error(_userMessages.xcodeEula));
       }
-
-      if (!xcode.eulaSigned) {
+      if (!_xcode.isSimctlInstalled) {
         xcodeStatus = ValidationType.partial;
-        messages.add(ValidationMessage.error(userMessages.xcodeEula));
-      }
-      if (!xcode.isSimctlInstalled) {
-        xcodeStatus = ValidationType.partial;
-        messages.add(ValidationMessage.error(userMessages.xcodeMissingSimct));
+        messages.add(ValidationMessage.error(_userMessages.xcodeMissingSimct));
       }
 
     } else {
       xcodeStatus = ValidationType.missing;
-      if (xcode.xcodeSelectPath == null || xcode.xcodeSelectPath.isEmpty) {
-        messages.add(ValidationMessage.error(userMessages.xcodeMissing));
+      if (_xcode.xcodeSelectPath == null || _xcode.xcodeSelectPath.isEmpty) {
+        messages.add(ValidationMessage.error(_userMessages.xcodeMissing));
       } else {
-        messages.add(ValidationMessage.error(userMessages.xcodeIncomplete));
+        messages.add(ValidationMessage.error(_userMessages.xcodeIncomplete));
       }
     }
 

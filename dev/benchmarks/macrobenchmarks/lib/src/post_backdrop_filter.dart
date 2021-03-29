@@ -7,6 +7,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class PostBackdropFilterPage extends StatefulWidget {
+  const PostBackdropFilterPage({Key key}) : super(key: key);
+
   @override
   _PostBackdropFilterPageState createState() => _PostBackdropFilterPageState();
 }
@@ -52,7 +54,7 @@ class _PostBackdropFilterPageState extends State<PostBackdropFilterPage> with Ti
       backgroundColor: Colors.grey,
       body: Stack(
         children: <Widget>[
-          Text('0' * 10000, style: TextStyle(color: Colors.yellow)),
+          Text('0' * 10000, style: const TextStyle(color: Colors.yellow)),
           Column(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[

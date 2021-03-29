@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:ui' as ui show TextHeightBehavior;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
 
@@ -67,6 +69,8 @@ void main() {
     expect(text1.softWrap, isTrue);
     expect(text1.overflow, TextOverflow.clip);
     expect(text1.maxLines, isNull);
+    expect(text1.textWidthBasis, TextWidthBasis.parent);
+    expect(text1.textHeightBehavior, isNull);
 
     await tester.pumpWidget(const AnimatedDefaultTextStyle(
       style: s2,
@@ -74,6 +78,8 @@ void main() {
       softWrap: false,
       overflow: TextOverflow.fade,
       maxLines: 3,
+      textWidthBasis: TextWidthBasis.longestLine,
+      textHeightBehavior: ui.TextHeightBehavior(applyHeightToFirstAscent: false),
       child: textWidget,
       duration: Duration(milliseconds: 1000),
     ));
@@ -85,6 +91,8 @@ void main() {
     expect(text2.softWrap, false);
     expect(text2.overflow, TextOverflow.fade);
     expect(text2.maxLines, 3);
+    expect(text2.textWidthBasis, TextWidthBasis.longestLine);
+    expect(text2.textHeightBehavior, const ui.TextHeightBehavior(applyHeightToFirstAscent: false));
 
     await tester.pump(const Duration(milliseconds: 1000));
 
@@ -95,5 +103,7 @@ void main() {
     expect(text3.softWrap, false);
     expect(text3.overflow, TextOverflow.fade);
     expect(text3.maxLines, 3);
+    expect(text2.textWidthBasis, TextWidthBasis.longestLine);
+    expect(text2.textHeightBehavior, const ui.TextHeightBehavior(applyHeightToFirstAscent: false));
   });
 }

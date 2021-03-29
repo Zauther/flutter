@@ -5,14 +5,14 @@
 import 'simulation.dart';
 
 // Examples can assume:
-// AnimationController _controller;
+// late AnimationController _controller;
 
 /// A simulation that applies a constant accelerating force.
 ///
 /// Models a particle that follows Newton's second law of motion. The simulation
 /// ends when the position reaches a defined point.
 ///
-/// {@tool sample}
+/// {@tool snippet}
 ///
 /// This method triggers an [AnimationController] (a previously constructed
 /// `_controller` field) to simulate a fall of 300 pixels.

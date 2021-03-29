@@ -9,10 +9,11 @@ class TestValueKey<T> extends ValueKey<T> {
   const TestValueKey(T value) : super(value);
 }
 
+@immutable
 class NotEquals {
   const NotEquals();
   @override
-  bool operator ==(dynamic other) => false;
+  bool operator ==(Object other) => false;
   @override
   int get hashCode => 0;
 }

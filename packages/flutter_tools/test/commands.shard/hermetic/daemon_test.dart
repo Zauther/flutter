@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
 import 'dart:async';
 
 import 'package:flutter_tools/src/android/android_workflow.dart';
@@ -9,22 +11,31 @@ import 'package:flutter_tools/src/base/common.dart';
 import 'package:flutter_tools/src/base/logger.dart';
 import 'package:flutter_tools/src/base/utils.dart';
 import 'package:flutter_tools/src/commands/daemon.dart';
+import 'package:flutter_tools/src/features.dart';
 import 'package:flutter_tools/src/fuchsia/fuchsia_workflow.dart';
-import 'package:flutter_tools/src/globals.dart';
+import 'package:flutter_tools/src/globals.dart' as globals;
 import 'package:flutter_tools/src/ios/ios_workflow.dart';
 import 'package:flutter_tools/src/resident_runner.dart';
+import 'package:mockito/mockito.dart';
+import 'package:fake_async/fake_async.dart';
 
 import '../../src/common.dart';
 import '../../src/context.dart';
+import '../../src/fakes.dart';
 import '../../src/mocks.dart';
+import '../../src/testbed.dart';
 
 void main() {
   Daemon daemon;
   NotifyingLogger notifyingLogger;
+  BufferLogger bufferLogger;
+  DevtoolsLauncher mockDevToolsLauncher;
 
   group('daemon', () {
     setUp(() {
-      notifyingLogger = NotifyingLogger();
+      bufferLogger = BufferLogger.test();
+      notifyingLogger = NotifyingLogger(verbose: false, parent: bufferLogger);
+      mockDevToolsLauncher = MockDevToolsLauncher();
     });
 
     tearDown(() {
@@ -41,15 +52,38 @@ void main() {
         commands.stream,
         responses.add,
         notifyingLogger: notifyingLogger,
-        dartDefines: const <String>[],
       );
       commands.add(<String, dynamic>{'id': 0, 'method': 'daemon.version'});
       final Map<String, dynamic> response = await responses.stream.firstWhere(_notEvent);
       expect(response['id'], 0);
       expect(response['result'], isNotEmpty);
-      expect(response['result'] is String, true);
+      expect(response['result'], isA<String>());
       await responses.close();
       await commands.close();
+    });
+
+    testUsingContext('daemon.getSupportedPlatforms command should succeed', () async {
+      final StreamController<Map<String, dynamic>> commands = StreamController<Map<String, dynamic>>();
+      final StreamController<Map<String, dynamic>> responses = StreamController<Map<String, dynamic>>();
+      daemon = Daemon(
+        commands.stream,
+        responses.add,
+        notifyingLogger: notifyingLogger,
+      );
+      // Use the flutter_gallery project which has a known set of supported platforms.
+      final String projectPath = globals.fs.path.join(getFlutterRoot(), 'dev', 'integration_tests', 'flutter_gallery');
+
+      commands.add(<String, dynamic>{'id': 0, 'method': 'daemon.getSupportedPlatforms', 'params': <String, Object>{'projectRoot': projectPath}});
+      final Map<String, dynamic> response = await responses.stream.firstWhere(_notEvent);
+
+      expect(response['id'], 0);
+      expect(response['result'], isNotEmpty);
+      expect(response['result']['platforms'], <String>{'macos'});
+      await responses.close();
+      await commands.close();
+    }, overrides: <Type, Generator>{
+      // Disable Android/iOS and enable macOS to make sure result is consistent and defaults are tested off.
+      FeatureFlags: () => TestFeatureFlags(isAndroidEnabled: false, isIOSEnabled: false, isMacOSEnabled: true),
     });
 
     testUsingContext('printError should send daemon.logMessage event', () async {
@@ -59,9 +93,8 @@ void main() {
         commands.stream,
         responses.add,
         notifyingLogger: notifyingLogger,
-        dartDefines: const <String>[],
       );
-      printError('daemon.logMessage test');
+      globals.printError('daemon.logMessage test');
       final Map<String, dynamic> response = await responses.stream.firstWhere((Map<String, dynamic> map) {
         return map['event'] == 'daemon.logMessage' && map['params']['level'] == 'error';
       });
@@ -77,9 +110,7 @@ void main() {
     });
 
     testUsingContext('printStatus should log to stdout when logToStdout is enabled', () async {
-      final StringBuffer buffer = StringBuffer();
-
-      await runZoned<Future<void>>(() async {
+      final StringBuffer buffer = await capturedConsolePrint(() {
         final StreamController<Map<String, dynamic>> commands = StreamController<Map<String, dynamic>>();
         final StreamController<Map<String, dynamic>> responses = StreamController<Map<String, dynamic>>();
         daemon = Daemon(
@@ -87,14 +118,10 @@ void main() {
           responses.add,
           notifyingLogger: notifyingLogger,
           logToStdout: true,
-          dartDefines: const <String>[],
         );
-        printStatus('daemon.logMessage test');
-        // Service the event loop.
-        await Future<void>.value();
-      }, zoneSpecification: ZoneSpecification(print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
-        buffer.writeln(line);
-      }));
+        globals.printStatus('daemon.logMessage test');
+        return Future<void>.value();
+      });
 
       expect(buffer.toString().trim(), 'daemon.logMessage test');
     }, overrides: <Type, Generator>{
@@ -108,7 +135,6 @@ void main() {
         commands.stream,
         responses.add,
         notifyingLogger: notifyingLogger,
-        dartDefines: const <String>[],
       );
       commands.add(<String, dynamic>{'id': 0, 'method': 'daemon.shutdown'});
       return daemon.onExit.then<void>((int code) async {
@@ -124,7 +150,6 @@ void main() {
         commands.stream,
         responses.add,
         notifyingLogger: notifyingLogger,
-        dartDefines: const <String>[],
       );
 
       commands.add(<String, dynamic>{'id': 0, 'method': 'app.restart'});
@@ -142,7 +167,6 @@ void main() {
         commands.stream,
         responses.add,
         notifyingLogger: notifyingLogger,
-        dartDefines: const <String>[],
       );
 
       commands.add(<String, dynamic>{
@@ -166,7 +190,6 @@ void main() {
         commands.stream,
         responses.add,
         notifyingLogger: notifyingLogger,
-        dartDefines: const <String>[],
       );
 
       commands.add(<String, dynamic>{'id': 0, 'method': 'app.stop'});
@@ -184,7 +207,6 @@ void main() {
         commands.stream,
         responses.add,
         notifyingLogger: notifyingLogger,
-        dartDefines: const <String>[],
       );
       commands.add(<String, dynamic>{'id': 0, 'method': 'device.getDevices'});
       final Map<String, dynamic> response = await responses.stream.firstWhere(_notEvent);
@@ -201,9 +223,8 @@ void main() {
         commands.stream,
         responses.add,
         notifyingLogger: notifyingLogger,
-        dartDefines: const <String>[],
       );
-      final MockPollingDeviceDiscovery discoverer = MockPollingDeviceDiscovery();
+      final FakePollingDeviceDiscovery discoverer = FakePollingDeviceDiscovery();
       daemon.deviceDomain.addDeviceDiscoverer(discoverer);
       discoverer.addDevice(MockAndroidDevice());
       commands.add(<String, dynamic>{'id': 0, 'method': 'device.getDevices'});
@@ -223,14 +244,13 @@ void main() {
         commands.stream,
         responses.add,
         notifyingLogger: notifyingLogger,
-        dartDefines: const <String>[],
       );
 
-      final MockPollingDeviceDiscovery discoverer = MockPollingDeviceDiscovery();
+      final FakePollingDeviceDiscovery discoverer = FakePollingDeviceDiscovery();
       daemon.deviceDomain.addDeviceDiscoverer(discoverer);
       discoverer.addDevice(MockAndroidDevice());
 
-      return await responses.stream.skipWhile(_isConnectedEvent).first.then<void>((Map<String, dynamic> response) async {
+      return responses.stream.skipWhile(_isConnectedEvent).first.then<void>((Map<String, dynamic> response) async {
         expect(response['event'], 'device.added');
         expect(response['params'], isMap);
 
@@ -253,7 +273,6 @@ void main() {
         commands.stream,
         responses.add,
         notifyingLogger: notifyingLogger,
-        dartDefines: const <String>[],
       );
 
       commands.add(<String, dynamic>{'id': 0, 'method': 'emulator.launch'});
@@ -271,7 +290,6 @@ void main() {
         commands.stream,
         responses.add,
         notifyingLogger: notifyingLogger,
-        dartDefines: const <String>[],
       );
       commands.add(<String, dynamic>{'id': 0, 'method': 'emulator.getEmulators'});
       final Map<String, dynamic> response = await responses.stream.firstWhere(_notEvent);
@@ -291,7 +309,6 @@ void main() {
         input.stream,
         output.add,
         notifyingLogger: notifyingLogger,
-        dartDefines: const <String>[],
       );
 
       // Respond to any requests from the daemon to expose a URL.
@@ -309,6 +326,81 @@ void main() {
       await output.close();
       await input.close();
     });
+
+    testUsingContext('devtools.serve command should return host and port on success', () async {
+      final StreamController<Map<String, dynamic>> commands = StreamController<Map<String, dynamic>>();
+      final StreamController<Map<String, dynamic>> responses = StreamController<Map<String, dynamic>>();
+      daemon = Daemon(
+        commands.stream,
+        responses.add,
+        notifyingLogger: notifyingLogger,
+      );
+      when(mockDevToolsLauncher.serve()).thenAnswer((_) async => DevToolsServerAddress('127.0.0.1', 1234));
+
+      commands.add(<String, dynamic>{'id': 0, 'method': 'devtools.serve'});
+      final Map<String, dynamic> response = await responses.stream.firstWhere((Map<String, dynamic> response) => response['id'] == 0);
+      expect(response['result'], isNotEmpty);
+      expect(response['result']['host'], '127.0.0.1');
+      expect(response['result']['port'], 1234);
+      await responses.close();
+      await commands.close();
+    }, overrides: <Type, Generator>{
+      DevtoolsLauncher: () => mockDevToolsLauncher,
+    });
+
+    testUsingContext('devtools.serve command should return null fields if null returned', () async {
+      final StreamController<Map<String, dynamic>> commands = StreamController<Map<String, dynamic>>();
+      final StreamController<Map<String, dynamic>> responses = StreamController<Map<String, dynamic>>();
+      daemon = Daemon(
+        commands.stream,
+        responses.add,
+        notifyingLogger: notifyingLogger,
+      );
+      when(mockDevToolsLauncher.serve()).thenAnswer((_) async => null);
+
+      commands.add(<String, dynamic>{'id': 0, 'method': 'devtools.serve'});
+      final Map<String, dynamic> response = await responses.stream.firstWhere((Map<String, dynamic> response) => response['id'] == 0);
+      expect(response['result'], isNotEmpty);
+      expect(response['result']['host'], null);
+      expect(response['result']['port'], null);
+      await responses.close();
+      await commands.close();
+    }, overrides: <Type, Generator>{
+      DevtoolsLauncher: () => mockDevToolsLauncher,
+    });
+  });
+
+  testUsingContext('notifyingLogger outputs trace messages in verbose mode', () async {
+    final NotifyingLogger logger = NotifyingLogger(verbose: true, parent: bufferLogger);
+
+    logger.printTrace('test');
+
+    expect(bufferLogger.errorText, contains('test'));
+  });
+
+  testUsingContext('notifyingLogger ignores trace messages in non-verbose mode', () async {
+    final NotifyingLogger logger = NotifyingLogger(verbose: false, parent: bufferLogger);
+
+    final Future<LogMessage> messageResult = logger.onMessage.first;
+    logger.printTrace('test');
+    logger.printStatus('hello');
+
+    final LogMessage message = await messageResult;
+
+    expect(message.level, 'status');
+    expect(message.message, 'hello');
+    expect(bufferLogger.errorText, contains('test'));
+  });
+
+  testUsingContext('notifyingLogger buffers messages sent before a subscription', () async {
+    final NotifyingLogger logger = NotifyingLogger(verbose: false, parent: bufferLogger);
+
+    logger.printStatus('hello');
+
+    final LogMessage message = await logger.onMessage.first;
+
+    expect(message.level, 'status');
+    expect(message.message, 'hello');
   });
 
   group('daemon serialization', () {
@@ -321,6 +413,89 @@ void main() {
         jsonEncodeObject(OperationResult(1, 'foo')),
         '{"code":1,"message":"foo"}',
       );
+    });
+  });
+
+  group('daemon queue', () {
+    DebounceOperationQueue<int, String> queue;
+    const Duration debounceDuration = Duration(seconds: 1);
+
+    setUp(() {
+      queue = DebounceOperationQueue<int, String>();
+    });
+
+    testWithoutContext(
+        'debounces/merges same operation type and returns same result',
+        () async {
+      await runFakeAsync((FakeAsync time) async {
+        final List<Future<int>> operations = <Future<int>>[
+          queue.queueAndDebounce('OP1', debounceDuration, () async => 1),
+          queue.queueAndDebounce('OP1', debounceDuration, () async => 2),
+        ];
+
+        time.elapse(debounceDuration * 5);
+        final List<int> results = await Future.wait(operations);
+
+        expect(results, orderedEquals(<int>[1, 1]));
+      });
+    });
+
+    testWithoutContext('does not merge results outside of the debounce duration',
+        () async {
+      await runFakeAsync((FakeAsync time) async {
+        final List<Future<int>> operations = <Future<int>>[
+          queue.queueAndDebounce('OP1', debounceDuration, () async => 1),
+          Future<int>.delayed(debounceDuration * 2).then((_) =>
+              queue.queueAndDebounce('OP1', debounceDuration, () async => 2)),
+        ];
+
+        time.elapse(debounceDuration * 5);
+        final List<int> results = await Future.wait(operations);
+
+        expect(results, orderedEquals(<int>[1, 2]));
+      });
+    });
+
+    testWithoutContext('does not merge results of different operations',
+        () async {
+      await runFakeAsync((FakeAsync time) async {
+        final List<Future<int>> operations = <Future<int>>[
+          queue.queueAndDebounce('OP1', debounceDuration, () async => 1),
+          queue.queueAndDebounce('OP2', debounceDuration, () async => 2),
+        ];
+
+        time.elapse(debounceDuration * 5);
+        final List<int> results = await Future.wait(operations);
+
+        expect(results, orderedEquals(<int>[1, 2]));
+      });
+    });
+
+    testWithoutContext('does not run any operations concurrently', () async {
+      // Crete a function that's slow, but throws if another instance of the
+      // function is running.
+      bool isRunning = false;
+      Future<int> f(int ret) async {
+        if (isRunning) {
+          throw 'Functions ran concurrently!';
+        }
+        isRunning = true;
+        await Future<void>.delayed(debounceDuration * 2);
+        isRunning = false;
+        return ret;
+      }
+
+      await runFakeAsync((FakeAsync time) async {
+        final List<Future<int>> operations = <Future<int>>[
+          queue.queueAndDebounce('OP1', debounceDuration, () => f(1)),
+          queue.queueAndDebounce('OP2', debounceDuration, () => f(2)),
+        ];
+
+        time.elapse(debounceDuration * 5);
+        final List<int> results = await Future.wait(operations);
+
+        expect(results, orderedEquals(<int>[1, 2]));
+      });
     });
   });
 }
@@ -349,3 +524,5 @@ class MockIOSWorkflow extends IOSWorkflow {
   @override
   final bool canListDevices;
 }
+
+class MockDevToolsLauncher extends Mock implements DevtoolsLauncher {}

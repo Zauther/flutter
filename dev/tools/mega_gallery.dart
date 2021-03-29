@@ -32,7 +32,7 @@ void main(List<String> args) {
     exit(0);
   }
 
-  final Directory source = Directory(_normalize('examples/flutter_gallery'));
+  final Directory source = Directory(_normalize('dev/integration_tests/flutter_gallery'));
   final Directory out = Directory(_normalize(results['out'] as String));
 
   if (results['delete'] as bool) {
@@ -62,7 +62,7 @@ void main(List<String> args) {
   print('');
   print('Stats:');
   print('  packages/flutter            : ${getStatsFor(Directory("packages/flutter"))}');
-  print('  examples/flutter_gallery    : ${getStatsFor(Directory("examples/flutter_gallery"))}');
+  print('  dev/integration_tests/flutter_gallery    : ${getStatsFor(Directory("dev/integration_tests/flutter_gallery"))}');
 
   final Directory lib = _dir(out, 'lib');
   if (lib.existsSync())
@@ -134,7 +134,7 @@ void _copy(Directory source, Directory target) {
   if (!target.existsSync())
     target.createSync(recursive: true);
 
-  for (FileSystemEntity entity in source.listSync(followLinks: false)) {
+  for (final FileSystemEntity entity in source.listSync(followLinks: false)) {
     final String name = path.basename(entity.path);
 
     if (entity is Directory) {
@@ -165,7 +165,7 @@ class SourceStats {
 SourceStats getStatsFor(Directory dir, [SourceStats stats]) {
   stats ??= SourceStats();
 
-  for (FileSystemEntity entity in dir.listSync(recursive: false, followLinks: false)) {
+  for (final FileSystemEntity entity in dir.listSync(recursive: false, followLinks: false)) {
     final String name = path.basename(entity.path);
     if (entity is File && name.endsWith('.dart')) {
       stats.files += 1;

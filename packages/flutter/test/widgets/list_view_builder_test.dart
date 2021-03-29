@@ -22,7 +22,7 @@ void main() {
             itemExtent: 100.0,
             itemBuilder: (BuildContext context, int index) {
               callbackTracker.add(index);
-              return Container(
+              return SizedBox(
                 key: ValueKey<int>(index),
                 height: 100.0,
                 child: Text('$index'),
@@ -68,15 +68,15 @@ void main() {
     // so if our widget is 200 pixels tall, it should fit exactly 3 times.
     // but if we are offset by 300 pixels, there will be 4, numbered 1-4.
 
-    final IndexedWidgetBuilder itemBuilder = (BuildContext context, int index) {
+    Widget itemBuilder(BuildContext context, int index) {
       callbackTracker.add(index);
-      return Container(
+      return SizedBox(
         key: ValueKey<int>(index),
         width: 500.0, // this should be ignored
         height: 400.0, // should be overridden by itemExtent
         child: Text('$index', textDirection: TextDirection.ltr),
       );
-    };
+    }
 
     Widget buildWidget() {
       return Directionality(
@@ -141,15 +141,15 @@ void main() {
     // so if our widget is 200 pixels wide, it should fit exactly 4 times.
     // but if we are offset by 300 pixels, there will be 5, numbered 1-5.
 
-    final IndexedWidgetBuilder itemBuilder = (BuildContext context, int index) {
+    Widget itemBuilder(BuildContext context, int index) {
       callbackTracker.add(index);
-      return Container(
+      return SizedBox(
         key: ValueKey<int>(index),
         width: 400.0, // this should be overridden by itemExtent
         height: 500.0, // this should be ignored
         child: Text('$index'),
       );
-    };
+    }
 
     Widget buildWidget() {
       return Directionality(
@@ -215,10 +215,10 @@ void main() {
     // items are 300 tall. Scrolling should cause two or three items
     // to be built.
 
-    final IndexedWidgetBuilder itemBuilder = (BuildContext context, int index) {
+    Widget itemBuilder(BuildContext context, int index) {
       callbackTracker.add(index);
       return Text('$index', key: ValueKey<int>(index), textDirection: TextDirection.ltr);
-    };
+    }
 
     final Widget testWidget = Directionality(
       textDirection: TextDirection.ltr,
@@ -262,7 +262,7 @@ void main() {
   });
 
   testWidgets('ListView.separated', (WidgetTester tester) async {
-    Widget buildFrame({ int itemCount }) {
+    Widget buildFrame({ required int itemCount }) {
       return Directionality(
         textDirection: TextDirection.ltr,
         child: ListView.separated(
@@ -299,18 +299,89 @@ void main() {
 
     // ListView's height is 600, so items i0-i5 and s0-s4 fit.
     await tester.pumpWidget(buildFrame(itemCount: 25));
-    for (String s in <String>['i0', 's0', 'i1', 's1', 'i2', 's2', 'i3', 's3', 'i4', 's4', 'i5'])
+    for (final String s in <String>['i0', 's0', 'i1', 's1', 'i2', 's2', 'i3', 's3', 'i4', 's4', 'i5'])
       expect(find.text(s), findsOneWidget);
     expect(find.text('s5'), findsNothing);
     expect(find.text('i6'), findsNothing);
   });
+
+
+  testWidgets('ListView.separated uses correct semanticChildCount', (WidgetTester tester) async {
+    Widget buildFrame({ required int itemCount}) {
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: ListView.separated(
+          itemCount: itemCount,
+          itemBuilder: (BuildContext context, int index) {
+            return SizedBox(
+              height: 100.0,
+              child: Text('i$index'),
+            );
+          },
+          separatorBuilder: (BuildContext context, int index) {
+            return SizedBox(
+              height: 10.0,
+              child: Text('s$index'),
+            );
+          },
+        ),
+      );
+    }
+
+    Scrollable scrollable() {
+      return tester.widget<Scrollable>(
+        find.descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildFrame(itemCount: 0));
+    expect(scrollable().semanticChildCount, 0);
+
+    await tester.pumpWidget(buildFrame(itemCount: 1));
+    expect(scrollable().semanticChildCount, 1);
+
+    await tester.pumpWidget(buildFrame(itemCount: 2));
+    expect(scrollable().semanticChildCount, 2);
+
+    await tester.pumpWidget(buildFrame(itemCount: 3));
+    expect(scrollable().semanticChildCount, 3);
+
+    await tester.pumpWidget(buildFrame(itemCount: 4));
+    expect(scrollable().semanticChildCount, 4);
+  });
+
+  // Regression test for https://github.com/flutter/flutter/issues/72292
+  testWidgets('ListView.builder and SingleChildScrollView can work well together', (WidgetTester tester) async {
+    Widget builder(int itemCount) {
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: SingleChildScrollView(
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemExtent: 35,
+            itemCount: itemCount,
+            itemBuilder: (BuildContext context, int index) {
+              return const Text('I love Flutter.');
+            },
+          ),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(builder(1));
+    // Trigger relayout and garbage collect.
+    await tester.pumpWidget(builder(2));
+  });
 }
 
 void check({ List<int> visible = const <int>[], List<int> hidden = const <int>[] }) {
-  for (int i in visible) {
+  for (final int i in visible) {
     expect(find.text('$i'), findsOneWidget);
   }
-  for (int i in hidden) {
+  for (final int i in hidden) {
     expect(find.text('$i'), findsNothing);
   }
 }

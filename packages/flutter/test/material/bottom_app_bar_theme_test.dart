@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -82,7 +81,7 @@ void main() {
       find.byKey(_painterKey),
       matchesGoldenFile('bottom_app_bar_theme.custom_shape.png'),
     );
-  }, skip: isBrowser);
+  });
 
   testWidgets('BAB theme does not affect defaults', (WidgetTester tester) async {
     await tester.pumpWidget(const MaterialApp(

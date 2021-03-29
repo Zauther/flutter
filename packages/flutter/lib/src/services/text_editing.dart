@@ -15,8 +15,8 @@ class TextSelection extends TextRange {
   ///
   /// The [baseOffset] and [extentOffset] arguments must not be null.
   const TextSelection({
-    @required this.baseOffset,
-    @required this.extentOffset,
+    required this.baseOffset,
+    required this.extentOffset,
     this.affinity = TextAffinity.downstream,
     this.isDirectional = false,
   }) : super(
@@ -32,7 +32,7 @@ class TextSelection extends TextRange {
   ///
   /// The [offset] argument must not be null.
   const TextSelection.collapsed({
-    @required int offset,
+    required int offset,
     this.affinity = TextAffinity.downstream,
   }) : baseOffset = offset,
        extentOffset = offset,
@@ -94,11 +94,11 @@ class TextSelection extends TextRange {
 
   @override
   String toString() {
-    return '$runtimeType(baseOffset: $baseOffset, extentOffset: $extentOffset, affinity: $affinity, isDirectional: $isDirectional)';
+    return '${objectRuntimeType(this, 'TextSelection')}(baseOffset: $baseOffset, extentOffset: $extentOffset, affinity: $affinity, isDirectional: $isDirectional)';
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (identical(this, other))
       return true;
     return other is TextSelection
@@ -119,10 +119,10 @@ class TextSelection extends TextRange {
   /// Creates a new [TextSelection] based on the current selection, with the
   /// provided parameters overridden.
   TextSelection copyWith({
-    int baseOffset,
-    int extentOffset,
-    TextAffinity affinity,
-    bool isDirectional,
+    int? baseOffset,
+    int? extentOffset,
+    TextAffinity? affinity,
+    bool? isDirectional,
   }) {
     return TextSelection(
       baseOffset: baseOffset ?? this.baseOffset,

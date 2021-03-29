@@ -2,8 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
 import '../base/file_system.dart';
-import '../globals.dart';
+import '../globals.dart' as globals;
 
 /// The name of the test configuration file that will be discovered by the
 /// test harness if it exists in the project directory hierarchy.
@@ -20,12 +22,12 @@ File findTestConfigFile(File testFile) {
   while (directory.path != directory.parent.path) {
     final File configFile = directory.childFile(_kTestConfigFileName);
     if (configFile.existsSync()) {
-      printTrace('Discovered $_kTestConfigFileName in ${directory.path}');
+      globals.printTrace('Discovered $_kTestConfigFileName in ${directory.path}');
       testConfigFile = configFile;
       break;
     }
     if (directory.childFile(_kProjectRootSentinel).existsSync()) {
-      printTrace('Stopping scan for $_kTestConfigFileName; '
+      globals.printTrace('Stopping scan for $_kTestConfigFileName; '
           'found project root at ${directory.path}');
       break;
     }

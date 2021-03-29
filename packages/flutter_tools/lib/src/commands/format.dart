@@ -2,11 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
+// @dart = 2.8
 
+import '../artifacts.dart';
 import '../base/common.dart';
-import '../base/process.dart';
-import '../dart/sdk.dart';
+import '../globals.dart' as globals;
 import '../runner/flutter_command.dart';
 
 class FormatCommand extends FlutterCommand {
@@ -30,7 +30,8 @@ class FormatCommand extends FlutterCommand {
     );
     argParser.addOption('line-length',
       abbr: 'l',
-      help: 'Wrap lines longer than this length. Defaults to 80 characters.',
+      help: 'Wrap lines longer than this length.',
+      valueHelp: 'characters',
       defaultsTo: '80',
     );
   }
@@ -42,7 +43,7 @@ class FormatCommand extends FlutterCommand {
   List<String> get aliases => const <String>['dartfmt'];
 
   @override
-  final String description = 'Format one or more dart files.';
+  final String description = 'Format one or more Dart files.';
 
   @override
   String get invocation => '${runner.executableName} $name <one or more paths>';
@@ -60,9 +61,11 @@ class FormatCommand extends FlutterCommand {
       );
     }
 
-    final String dartfmt = sdkBinaryName('dartfmt');
+    final String dartSdk = globals.artifacts.getArtifactPath(Artifact.engineDartSdkPath);
+    final String dartBinary = globals.artifacts.getArtifactPath(Artifact.engineDartBinary);
     final List<String> command = <String>[
-      dartfmt,
+      dartBinary,
+      globals.fs.path.join(dartSdk, 'bin', 'snapshots', 'dartfmt.dart.snapshot'),
       if (boolArg('dry-run')) '-n',
       if (boolArg('machine')) '-m',
       if (argResults['line-length'] != null) '-l ${argResults['line-length']}',
@@ -71,11 +74,11 @@ class FormatCommand extends FlutterCommand {
       ...argResults.rest,
     ];
 
-    final int result = await processUtils.stream(command);
+    final int result = await globals.processUtils.stream(command);
     if (result != 0) {
       throwToolExit('Formatting failed: $result', exitCode: result);
     }
 
-    return null;
+    return FlutterCommandResult.success();
   }
 }

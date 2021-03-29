@@ -6,23 +6,12 @@ import 'dart:math' as math show pi;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-class _UpdateCountedPhysicalModel extends PhysicalModel {
-  const _UpdateCountedPhysicalModel({Clip clipBehavior = Clip.none})
-    : super(clipBehavior: clipBehavior, color: Colors.red);
-}
-
-class _UpdateCountedPhysicalShape extends PhysicalShape {
-  const _UpdateCountedPhysicalShape({Clip clipBehavior = Clip.none})
-      : super(clipBehavior: clipBehavior, color: Colors.red, clipper: const ShapeBorderClipper(shape: CircleBorder()));
-}
 
 void main() {
   testWidgets('PhysicalModel updates clipBehavior in updateRenderObject', (WidgetTester tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: _UpdateCountedPhysicalModel()),
+      const MaterialApp(home: PhysicalModel(color: Colors.red)),
     );
 
     final RenderPhysicalModel renderPhysicalModel = tester.allRenderObjects.whereType<RenderPhysicalModel>().first;
@@ -30,7 +19,7 @@ void main() {
     expect(renderPhysicalModel.clipBehavior, equals(Clip.none));
 
     await tester.pumpWidget(
-      const MaterialApp(home: _UpdateCountedPhysicalModel(clipBehavior: Clip.antiAlias)),
+      const MaterialApp(home: PhysicalModel(clipBehavior: Clip.antiAlias, color: Colors.red)),
     );
 
     expect(renderPhysicalModel.clipBehavior, equals(Clip.antiAlias));
@@ -38,7 +27,7 @@ void main() {
 
   testWidgets('PhysicalShape updates clipBehavior in updateRenderObject', (WidgetTester tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: _UpdateCountedPhysicalShape()),
+      const MaterialApp(home: PhysicalShape(color: Colors.red, clipper: ShapeBorderClipper(shape: CircleBorder()))),
     );
 
     final RenderPhysicalShape renderPhysicalShape = tester.allRenderObjects.whereType<RenderPhysicalShape>().first;
@@ -46,7 +35,7 @@ void main() {
     expect(renderPhysicalShape.clipBehavior, equals(Clip.none));
 
     await tester.pumpWidget(
-      const MaterialApp(home: _UpdateCountedPhysicalShape(clipBehavior: Clip.antiAlias)),
+      const MaterialApp(home: PhysicalShape(clipBehavior: Clip.antiAlias, color: Colors.red, clipper: ShapeBorderClipper(shape: CircleBorder()))),
     );
 
     expect(renderPhysicalShape.clipBehavior, equals(Clip.antiAlias));
@@ -55,17 +44,13 @@ void main() {
   testWidgets('PhysicalModel - creates a physical model layer when it needs compositing', (WidgetTester tester) async {
     debugDisableShadows = false;
     await tester.pumpWidget(
-      MediaQuery(
-        data: const MediaQueryData(devicePixelRatio: 1.0),
-        child: Directionality(
-          textDirection: TextDirection.ltr,
-          child: PhysicalModel(
-            shape: BoxShape.rectangle,
-            color: Colors.grey,
-            shadowColor: Colors.red,
-            elevation: 1.0,
-            child: Material(child: TextField(controller: TextEditingController())),
-          ),
+      MaterialApp(
+        home: PhysicalModel(
+          shape: BoxShape.rectangle,
+          color: Colors.grey,
+          shadowColor: Colors.red,
+          elevation: 1.0,
+          child: Material(child: TextField(controller: TextEditingController())),
         ),
       ),
     );
@@ -105,20 +90,20 @@ void main() {
     );
 
     final dynamic exception = tester.takeException();
-    expect(exception, isInstanceOf<FlutterError>());
+    expect(exception, isFlutterError);
     expect(exception.diagnostics.first.level, DiagnosticLevel.summary);
     expect(exception.diagnostics.first.toString(), startsWith('A RenderFlex overflowed by '));
     await expectLater(
       find.byKey(key),
       matchesGoldenFile('physical_model_overflow.png'),
     );
-  }, skip: isBrowser);
+  });
 
   group('PhysicalModelLayer checks elevation', () {
     Future<void> _testStackChildren(
       WidgetTester tester,
       List<Widget> children, {
-      @required int expectedErrorCount,
+      required int expectedErrorCount,
       bool enableCheck = true,
     }) async {
       assert(expectedErrorCount != null);
@@ -129,7 +114,7 @@ void main() {
       }
       debugDisableShadows = false;
       int count = 0;
-      final void Function(FlutterErrorDetails) oldOnError = FlutterError.onError;
+      final void Function(FlutterErrorDetails)? oldOnError = FlutterError.onError;
       FlutterError.onError = (FlutterErrorDetails details) {
         count++;
       };
@@ -156,11 +141,11 @@ void main() {
     //            │
     // ────────────────────────────
     testWidgets('entirely overlapping, direct child', (WidgetTester tester) async {
-      final List<Widget> children = <Widget>[
-        Container(
+      const List<Widget> children = <Widget>[
+        SizedBox(
           width: 300,
           height: 300,
-          child: const Material(
+          child: Material(
             elevation: 1.0,
             color: Colors.green,
             child: Material(
@@ -184,19 +169,19 @@ void main() {
     //         │          │
     // ────────────────────────────
     testWidgets('entirely overlapping, correct painting order', (WidgetTester tester) async {
-      final List<Widget> children = <Widget>[
-        Container(
+      const List<Widget> children = <Widget>[
+        SizedBox(
           width: 300,
           height: 300,
-          child: const Material(
+          child: Material(
             elevation: 1.0,
             color: Colors.green,
           ),
         ),
-        Container(
+        SizedBox(
           width: 300,
           height: 300,
-          child: const Material(
+          child: Material(
             elevation: 2.0,
             color: Colors.blue,
           ),
@@ -216,19 +201,19 @@ void main() {
     //         │        │
     // ────────────────────────────
     testWidgets('entirely overlapping, wrong painting order', (WidgetTester tester) async {
-      final List<Widget> children = <Widget>[
-        Container(
+      const List<Widget> children = <Widget>[
+        SizedBox(
           width: 300,
           height: 300,
-          child: const Material(
+          child: Material(
             elevation: 2.0,
             color: Colors.green,
           ),
         ),
-        Container(
+        SizedBox(
           width: 300,
           height: 300,
-          child: const Material(
+          child: Material(
             elevation: 1.0,
             color: Colors.blue,
           ),
@@ -252,10 +237,10 @@ void main() {
       final List<Widget> children = <Widget>[
         Positioned.fromRect(
           rect: const Rect.fromLTWH(150, 150, 150, 150),
-          child: Container(
+          child: const SizedBox(
             width: 300,
             height: 300,
-            child: const Material(
+            child: Material(
               elevation: 3.0,
               color: Colors.brown,
             ),
@@ -263,10 +248,10 @@ void main() {
         ),
         Positioned.fromRect(
           rect: const Rect.fromLTWH(20, 20, 140, 150),
-          child: Container(
+          child: const SizedBox(
             width: 300,
             height: 300,
-            child: const Material(
+            child: Material(
               elevation: 2.0,
               color: Colors.red,
               shape: CircleBorder(),
@@ -277,7 +262,7 @@ void main() {
 
       await _testStackChildren(tester, children, expectedErrorCount: 0);
       expect(find.byType(Material), findsNWidgets(2));
-    }, skip: isBrowser);
+    }, skip: isBrowser);  // https://github.com/flutter/flutter/issues/52855
 
     // Tests:
     //
@@ -290,10 +275,10 @@ void main() {
       final List<Widget> children = <Widget>[
         Positioned.fromRect(
           rect: const Rect.fromLTWH(20, 20, 140, 150),
-          child: Container(
+          child: const SizedBox(
             width: 300,
             height: 300,
-            child: const Material(
+            child: Material(
               elevation: 3.0,
               color: Colors.brown,
             ),
@@ -301,10 +286,10 @@ void main() {
         ),
         Positioned.fromRect(
           rect: const Rect.fromLTWH(50, 50, 100, 100),
-          child: Container(
+          child: const SizedBox(
             width: 300,
             height: 300,
-            child: const Material(
+            child: Material(
               elevation: 2.0,
               color: Colors.red,
               shape: CircleBorder(),
@@ -328,10 +313,10 @@ void main() {
       final List<Widget> children = <Widget>[
         Positioned.fromRect(
           rect: const Rect.fromLTWH(150, 150, 150, 150),
-          child: Container(
+          child: const SizedBox(
             width: 300,
             height: 300,
-            child: const Material(
+            child: Material(
               elevation: 3.0,
               color: Colors.brown,
             ),
@@ -339,10 +324,10 @@ void main() {
         ),
         Positioned.fromRect(
           rect: const Rect.fromLTWH(30, 20, 150, 150),
-          child: Container(
+          child: const SizedBox(
             width: 300,
             height: 300,
-            child: const Material(
+            child: Material(
               elevation: 2.0,
               color: Colors.red,
               shape: CircleBorder(),
@@ -369,10 +354,10 @@ void main() {
       final List<Widget> children = <Widget>[
         Positioned.fromRect(
           rect: const Rect.fromLTWH(150, 150, 150, 150),
-          child: Container(
+          child: const SizedBox(
             width: 300,
             height: 300,
-            child: const Material(
+            child: Material(
               elevation: 1.0,
               color: Colors.brown,
               child: Padding(
@@ -387,10 +372,10 @@ void main() {
         ),
         Positioned.fromRect(
           rect: const Rect.fromLTWH(30, 20, 180, 180),
-          child: Container(
+          child: const SizedBox(
             width: 300,
             height: 300,
-            child: const Material(
+            child: Material(
               elevation: 1.0,
               color: Colors.red,
             ),
@@ -413,10 +398,10 @@ void main() {
       final List<Widget> children = <Widget>[
         Positioned.fromRect(
           rect: const Rect.fromLTWH(150, 150, 150, 150),
-          child: Container(
+          child: const SizedBox(
             width: 300,
             height: 300,
-            child: const Material(
+            child: Material(
               elevation: 3.0,
               color: Colors.brown,
             ),
@@ -424,10 +409,10 @@ void main() {
         ),
         Positioned.fromRect(
           rect: const Rect.fromLTWH(30, 20, 150, 150),
-          child: Container(
+          child: const SizedBox(
             width: 300,
             height: 300,
-            child: const Material(
+            child: Material(
               elevation: 2.0,
               color: Colors.red,
               shape: CircleBorder(),
@@ -457,7 +442,7 @@ void main() {
       final List<Widget> children = <Widget>[
         Positioned.fromRect(
           rect: const Rect.fromLTWH(140, 100, 140, 150),
-          child: Container(
+          child: SizedBox(
             width: 300,
             height: 300,
             child: Transform.rotate(
@@ -471,10 +456,10 @@ void main() {
         ),
         Positioned.fromRect(
           rect: const Rect.fromLTWH(50, 50, 100, 100),
-          child: Container(
+          child: const SizedBox(
             width: 300,
             height: 300,
-            child: const Material(
+            child: Material(
                 elevation: 2.0,
                 color: Colors.red,
                 shape: CircleBorder()),
@@ -484,7 +469,7 @@ void main() {
 
       await _testStackChildren(tester, children, expectedErrorCount: 0);
       expect(find.byType(Material), findsNWidgets(2));
-    }, skip: isBrowser);
+    }, skip: isBrowser);  // https://github.com/flutter/flutter/issues/52855
 
     // Tests:
     //
@@ -498,7 +483,7 @@ void main() {
       final List<Widget> children = <Widget>[
         Positioned.fromRect(
           rect: const Rect.fromLTWH(140, 100, 140, 150),
-          child: Container(
+          child: SizedBox(
             width: 300,
             height: 300,
             child: Transform.rotate(
@@ -512,10 +497,10 @@ void main() {
         ),
         Positioned.fromRect(
           rect: const Rect.fromLTWH(50, 50, 100, 100),
-          child: Container(
+          child: const SizedBox(
             width: 300,
             height: 300,
-            child: const Material(
+            child: Material(
                 elevation: 2.0,
                 color: Colors.red,
                 shape: CircleBorder()),

@@ -3,15 +3,16 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_driver/driver_extension.dart';
 
 void main() {
   enableFlutterDriverExtension();
-  runApp(DriverTestApp());
+  runApp(const DriverTestApp());
 }
 
 class DriverTestApp extends StatefulWidget {
+  const DriverTestApp({Key key}) : super(key: key);
+
   @override
   State<StatefulWidget> createState() {
     return DriverTestAppState();
@@ -37,7 +38,7 @@ class DriverTestAppState extends State<DriverTestApp> {
                 Expanded(
                   child: Text(present ? 'present' : 'absent'),
                 ),
-                RaisedButton(
+                ElevatedButton(
                   child: const Text(
                     'toggle',
                     key: ValueKey<String>('togglePresent'),

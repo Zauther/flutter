@@ -119,6 +119,8 @@ void main() {
     expect(tester.testTextInput.isVisible, isTrue);
 
     tester.testTextInput.hide();
+    final EditableTextState state = tester.state<EditableTextState>(find.byType(EditableText));
+    state.connectionClosed();
 
     expect(tester.testTextInput.isVisible, isFalse);
 
@@ -175,7 +177,7 @@ void main() {
   testWidgets('Focus keep-alive works with GlobalKey reparenting', (WidgetTester tester) async {
     final FocusNode focusNode = FocusNode();
 
-    Widget makeTest(String prefix) {
+    Widget makeTest(String? prefix) {
       return MaterialApp(
         home: Material(
           child: ListView(

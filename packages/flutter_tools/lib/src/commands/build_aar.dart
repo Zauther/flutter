@@ -2,22 +2,24 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
+// @dart = 2.8
+
+import 'package:meta/meta.dart';
 
 import '../android/android_builder.dart';
-import '../android/android_sdk.dart';
 import '../android/gradle_utils.dart';
 import '../base/common.dart';
 import '../base/os.dart';
 import '../build_info.dart';
 import '../cache.dart';
+import '../globals.dart' as globals;
 import '../project.dart';
 import '../reporting/reporting.dart';
 import '../runner/flutter_command.dart' show FlutterCommandResult;
 import 'build.dart';
 
 class BuildAarCommand extends BuildSubCommand {
-  BuildAarCommand() {
+  BuildAarCommand({ @required bool verboseHelp }) {
     argParser
       ..addFlag(
         'debug',
@@ -34,9 +36,17 @@ class BuildAarCommand extends BuildSubCommand {
         defaultsTo: true,
         help: 'Build a release version of the current project.',
       );
+    addTreeShakeIconsFlag();
     usesFlavorOption();
     usesBuildNumberOption();
     usesPubOption();
+    addSplitDebugInfoOption();
+    addDartObfuscationOption();
+    usesDartDefineOption();
+    usesTrackWidgetCreation(verboseHelp: false);
+    addNullSafetyModeOptions(hide: !verboseHelp);
+    addEnableExperimentation(hide: !verboseHelp);
+    addAndroidSpecificBuildOptions(hide: !verboseHelp);
     argParser
       ..addMultiOption(
         'target-platform',
@@ -47,13 +57,16 @@ class BuildAarCommand extends BuildSubCommand {
       )
       ..addOption(
         'output-dir',
-        help: 'The absolute path to the directory where the repository is generated.'
-              'By default, this is \'<current-directory>android/build\'. ',
+        help: 'The absolute path to the directory where the repository is generated. '
+              'By default, this is "<current-directory>android/build".',
       );
   }
 
   @override
   final String name = 'aar';
+
+  @override
+  bool get reportNullSafety => false;
 
   @override
   Future<Set<DevelopmentArtifact>> get requiredArtifacts async => <DevelopmentArtifact>{
@@ -87,7 +100,7 @@ class BuildAarCommand extends BuildSubCommand {
 
   @override
   Future<FlutterCommandResult> runCommand() async {
-    if (androidSdk == null) {
+    if (globals.androidSdk == null) {
       exitWithNoSdkMessage();
     }
     final Set<AndroidBuildInfo> androidBuildInfo = <AndroidBuildInfo>{};
@@ -101,17 +114,21 @@ class BuildAarCommand extends BuildSubCommand {
       ? stringArg('build-number')
       : '1.0';
 
-    for (String buildMode in const <String>['debug', 'profile', 'release']) {
+    for (final String buildMode in const <String>['debug', 'profile', 'release']) {
       if (boolArg(buildMode)) {
-        androidBuildInfo.add(AndroidBuildInfo(
-          BuildInfo(BuildMode.fromName(buildMode), stringArg('flavor')),
-          targetArchs: targetArchitectures,
-        ));
+        androidBuildInfo.add(
+          AndroidBuildInfo(
+            await getBuildInfo(forcedBuildMode: BuildMode.fromName(buildMode)),
+            targetArchs: targetArchitectures,
+          )
+        );
       }
     }
     if (androidBuildInfo.isEmpty) {
       throwToolExit('Please specify a build mode and try again.');
     }
+
+    displayNullSafetyMode(androidBuildInfo.first.buildInfo);
     await androidBuilder.buildAar(
       project: _getProject(),
       target: '', // Not needed because this command only builds Android's code.
@@ -119,7 +136,7 @@ class BuildAarCommand extends BuildSubCommand {
       outputDirectoryPath: stringArg('output-dir'),
       buildNumber: buildNumber,
     );
-    return null;
+    return FlutterCommandResult.success();
   }
 
   /// Returns the [FlutterProject] which is determined from the remaining command-line
@@ -128,6 +145,6 @@ class BuildAarCommand extends BuildSubCommand {
     if (argResults.rest.isEmpty) {
       return FlutterProject.current();
     }
-    return FlutterProject.fromPath(findProjectRoot(argResults.rest.first));
+    return FlutterProject.fromDirectory(globals.fs.directory(findProjectRoot(globals.fs, argResults.rest.first)));
   }
 }

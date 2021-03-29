@@ -10,14 +10,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vitool/vitool.dart';
 import 'package:path/path.dart' as path;
 
-const String kPackagePath = '..';
-
 void main() {
 
   test('parsePixels', () {
     expect(parsePixels('23px'), 23);
     expect(parsePixels('9px'), 9);
-    expect(() { parsePixels('9pt'); }, throwsA(isInstanceOf<ArgumentError>()));
+    expect(() { parsePixels('9pt'); }, throwsArgumentError);
   });
 
   test('parsePoints', () {
@@ -559,7 +557,7 @@ void main() {
             ),
           ]);
 
-      expect(animation.toDart('_AnimatedIconData', '_\$data1'),
+      expect(animation.toDart('_AnimatedIconData', r'_$data1'),
           'const _AnimatedIconData _\$data1 = const _AnimatedIconData(\n'
           '  const Size(48.0, 48.0),\n'
           '  const <_PathFrames>[\n'
@@ -694,6 +692,5 @@ class PathAnimationMatcher extends Matcher {
 }
 
 String testAsset(String name) {
-  return path.join(kPackagePath, 'test_assets', name);
+  return path.join('test_assets', name);
 }
-

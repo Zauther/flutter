@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -47,7 +45,7 @@ void main() {
         textDirection: TextDirection.ltr,
         child: Material(
           child: Center(
-            child: Container(
+            child: SizedBox(
               width: 200.0,
               height: 60.0,
               child: InkWell(
@@ -67,7 +65,7 @@ void main() {
     await tester.pump(); // start gesture
     await tester.pump(const Duration(milliseconds: 200)); // wait for splash to be well under way
 
-    final RenderBox box = Material.of(tester.element(find.byType(InkWell))) as RenderBox;
+    final RenderBox box = Material.of(tester.element(find.byType(InkWell)))! as RenderBox;
     expect(
       box,
       paints
@@ -96,7 +94,7 @@ void main() {
         textDirection: TextDirection.ltr,
         child: Material(
           child: Center(
-            child: Container(
+            child: SizedBox(
               width: 100.0,
               height: 100.0,
               child: InkWell(
@@ -119,7 +117,7 @@ void main() {
     await tester.tapAt(tapDownOffset);
     await tester.pump(); // start gesture
 
-    final RenderBox box = Material.of(tester.element(find.byType(InkWell))) as RenderBox;
+    final RenderBox box = Material.of(tester.element(find.byType(InkWell)))! as RenderBox;
 
     bool offsetsAreClose(Offset a, Offset b) => (a - b).distance < 1.0;
     bool radiiAreClose(double a, double b) => (a - b).abs() < 1.0;
@@ -195,7 +193,7 @@ void main() {
     await tester.pump(); // start gesture
     await tester.pump(const Duration(milliseconds: 200)); // wait for splash to be well under way
 
-    final RenderBox box = Material.of(tester.element(find.byType(InkWell))) as RenderBox;
+    final RenderBox box = Material.of(tester.element(find.byType(InkWell)))! as RenderBox;
     expect(
       box,
       paints
@@ -251,7 +249,7 @@ void main() {
     expect(box, isNot(paints..circle()));
 
     await gesture.up();
-  }, skip: isBrowser);
+  });
 
   testWidgets('The InkWell widget renders an SelectAction or ActivateAction-induced ink ripple', (WidgetTester tester) async {
     const Color highlightColor = Color(0xAAFF0000);
@@ -259,17 +257,17 @@ void main() {
     final BorderRadius borderRadius = BorderRadius.circular(6.0);
 
     final FocusNode focusNode = FocusNode(debugLabel: 'Test Node');
-    Future<void> buildTest(LocalKey actionKey) async {
-      return await tester.pumpWidget(
+    Future<void> buildTest(Intent intent) async {
+      return tester.pumpWidget(
         Shortcuts(
           shortcuts: <LogicalKeySet, Intent>{
-            LogicalKeySet(LogicalKeyboardKey.space): Intent(actionKey),
+            LogicalKeySet(LogicalKeyboardKey.space): intent,
           },
           child: Directionality(
             textDirection: TextDirection.ltr,
             child: Material(
               child: Center(
-                child: Container(
+                child: SizedBox(
                   width: 100.0,
                   height: 100.0,
                   child: InkWell(
@@ -289,7 +287,7 @@ void main() {
       );
     }
 
-    await buildTest(ActivateAction.key);
+    await buildTest(const ActivateIntent());
     focusNode.requestFocus();
     await tester.pumpAndSettle();
 
@@ -322,12 +320,12 @@ void main() {
         );
     }
 
-    await buildTest(ActivateAction.key);
+    await buildTest(const ActivateIntent());
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
     await tester.pump();
 
-    final RenderBox box = Material.of(tester.element(find.byType(InkWell))) as RenderBox;
+    final RenderBox box = Material.of(tester.element(find.byType(InkWell)))! as RenderBox;
 
     // ripplePattern always add a translation of topLeft.
     expect(box, ripplePattern(30.0, 0));
@@ -360,7 +358,7 @@ void main() {
         textDirection: TextDirection.ltr,
         child: Material(
           child: Center(
-            child: Container(
+            child: SizedBox(
               width: 100.0,
               height: 100.0,
               child: InkWell(
@@ -381,7 +379,7 @@ void main() {
 
     final TestGesture gesture = await tester.startGesture(tapDownOffset);
     await tester.pump(); // start gesture
-    await gesture.moveTo(const Offset(0.0, 0.0));
+    await gesture.moveTo(Offset.zero);
     await gesture.up(); // generates a tap cancel
     await tester.pumpAndSettle();
   });
@@ -396,7 +394,7 @@ void main() {
         textDirection: TextDirection.ltr,
         child: Material(
           child: Center(
-            child: Container(
+            child: SizedBox(
               width: 100.0,
               height: 100.0,
               child: InkWell(
@@ -420,10 +418,10 @@ void main() {
     // Generate a tap cancel; Will cancel the ink splash before it started
     final TestGesture gesture = await tester.startGesture(tapDownOffset);
     await tester.pump(); // start gesture
-    await gesture.moveTo(const Offset(0.0, 0.0));
+    await gesture.moveTo(Offset.zero);
     await gesture.up(); // generates a tap cancel
 
-    final RenderBox box = Material.of(tester.element(find.byType(InkWell))) as RenderBox;
+    final RenderBox box = Material.of(tester.element(find.byType(InkWell)))! as RenderBox;
     expect(box, paints..everything((Symbol method, List<dynamic> arguments) {
       if (method != #drawCircle)
         return true;
@@ -432,5 +430,68 @@ void main() {
         return true;
       throw 'Expected: paint.color.alpha == 0, found: ${paint.color.alpha}';
     }));
+  });
+
+  // Regression test for https://github.com/flutter/flutter/issues/6751
+  testWidgets('When Ink has a GlobalKey and changes position, splash should not stop', (WidgetTester tester) async {
+    const Color color = Colors.blue;
+    const Color splashColor = Colors.green;
+
+    void expectTest(bool painted) {
+      final PaintPattern paintPattern = paints
+        ..rect(color: Color(color.value))
+        ..circle(color: Color(splashColor.value));
+
+      expect(
+        Material.of(tester.element(find.byType(InkWell)))! as RenderBox,
+        painted ? paintPattern : isNot(paintPattern),
+      );
+    }
+
+    bool wrap = false;
+    final Key globalKey = GlobalKey();
+    await tester.pumpWidget(Directionality(
+      textDirection: TextDirection.ltr,
+      child: Material(
+        child: Center(
+          child: StatefulBuilder(
+            builder: (BuildContext context, void Function(void Function()) setState) {
+              Widget child = Ink(
+                key: globalKey,
+                color: color,
+                width: 200.0,
+                height: 200.0,
+                child: InkWell(
+                  splashColor: splashColor,
+                  onTap: () { },
+                  onTapDown: (_) async {
+                    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+                    setState(() {
+                      wrap = !wrap;
+                    });
+                  }
+                ),
+              );
+
+              if (wrap) {
+                child = Container(
+                  margin: const EdgeInsets.only(top: 320),
+                  child: child,
+                );
+              }
+
+              return child;
+            }
+          ),
+        ),
+      ),
+    ));
+    final TestGesture testGesture = await tester.startGesture(tester.getRect(find.byType(InkWell)).center);
+    await tester.pump(const Duration(milliseconds: 60));
+    expectTest(true);
+    await testGesture.up();
+    await tester.pumpAndSettle();
+    expectTest(false);
   });
 }

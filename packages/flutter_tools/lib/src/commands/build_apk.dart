@@ -2,15 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
+// @dart = 2.8
 
 import '../android/android_builder.dart';
-import '../android/android_sdk.dart';
+import '../android/build_validation.dart';
 import '../android/gradle_utils.dart';
-import '../base/terminal.dart';
 import '../build_info.dart';
 import '../cache.dart';
-import '../globals.dart';
+import '../globals.dart' as globals;
 import '../project.dart';
 import '../reporting/reporting.dart';
 import '../runner/flutter_command.dart' show FlutterCommandResult;
@@ -18,14 +17,24 @@ import 'build.dart';
 
 class BuildApkCommand extends BuildSubCommand {
   BuildApkCommand({bool verboseHelp = false}) {
+    addTreeShakeIconsFlag();
     usesTargetOption();
     addBuildModeFlags(verboseHelp: verboseHelp);
     usesFlavorOption();
     usesPubOption();
     usesBuildNumberOption();
     usesBuildNameOption();
-    addShrinkingFlag();
-
+    addShrinkingFlag(verboseHelp: verboseHelp);
+    addSplitDebugInfoOption();
+    addDartObfuscationOption();
+    usesDartDefineOption();
+    usesExtraDartFlagOptions(verboseHelp: verboseHelp);
+    addBundleSkSLPathOption(hide: !verboseHelp);
+    addEnableExperimentation(hide: !verboseHelp);
+    addBuildPerformanceFile(hide: !verboseHelp);
+    addNullSafetyModeOptions(hide: !verboseHelp);
+    usesAnalyzeSizeFlag();
+    addAndroidSpecificBuildOptions(hide: !verboseHelp);
     argParser
       ..addFlag('split-per-abi',
         negatable: false,
@@ -51,9 +60,12 @@ class BuildApkCommand extends BuildSubCommand {
 
   @override
   final String description = 'Build an Android APK file from your app.\n\n'
-    'This command can build debug and release versions of your application. \'debug\' builds support '
-    'debugging and a quick development cycle. \'release\' builds don\'t support debugging and are '
-    'suitable for deploying to app stores.';
+    "This command can build debug and release versions of your application. 'debug' builds support "
+    "debugging and a quick development cycle. 'release' builds don't support debugging and are "
+    'suitable for deploying to app stores. If you are deploying the app to the Play Store, '
+    'it\'s recommended to use app bundles or split the APK to reduce the APK size. Learn more at:\n\n'
+    ' * https://developer.android.com/guide/app-bundle\n'
+    ' * https://developer.android.com/studio/build/configure-apk-splits#configure-abi-split';
 
   @override
   Future<Map<CustomDimensions, String>> get usageValues async {
@@ -79,39 +91,22 @@ class BuildApkCommand extends BuildSubCommand {
 
   @override
   Future<FlutterCommandResult> runCommand() async {
-    if (androidSdk == null) {
+    if (globals.androidSdk == null) {
       exitWithNoSdkMessage();
     }
-    final BuildInfo buildInfo = getBuildInfo();
+    final BuildInfo buildInfo = await getBuildInfo();
     final AndroidBuildInfo androidBuildInfo = AndroidBuildInfo(
       buildInfo,
       splitPerAbi: boolArg('split-per-abi'),
       targetArchs: stringsArg('target-platform').map<AndroidArch>(getAndroidArchForName),
-      shrink: boolArg('shrink'),
     );
-
-    if (buildInfo.isRelease && !androidBuildInfo.splitPerAbi && androidBuildInfo.targetArchs.length > 1) {
-      final String targetPlatforms = stringsArg('target-platform').join(', ');
-
-      printStatus('You are building a fat APK that includes binaries for '
-                  '$targetPlatforms.', emphasis: true, color: TerminalColor.green);
-      printStatus('If you are deploying the app to the Play Store, '
-                  'it\'s recommended to use app bundles or split the APK to reduce the APK size.', emphasis: true);
-      printStatus('To generate an app bundle, run:', emphasis: true, indent: 4);
-      printStatus('flutter build appbundle '
-                  '--target-platform ${targetPlatforms.replaceAll(' ', '')}',indent: 8);
-      printStatus('Learn more on: https://developer.android.com/guide/app-bundle',indent: 8);
-      printStatus('To split the APKs per ABI, run:', emphasis: true, indent: 4);
-      printStatus('flutter build apk '
-                  '--target-platform ${targetPlatforms.replaceAll(' ', '')} '
-                  '--split-per-abi', indent: 8);
-      printStatus('Learn more on:  https://developer.android.com/studio/build/configure-apk-splits#configure-abi-split',indent: 8);
-    }
+    validateBuild(androidBuildInfo);
+    displayNullSafetyMode(androidBuildInfo.buildInfo);
     await androidBuilder.buildApk(
       project: FlutterProject.current(),
       target: targetFile,
       androidBuildInfo: androidBuildInfo,
     );
-    return null;
+    return FlutterCommandResult.success();
   }
 }

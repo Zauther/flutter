@@ -7,7 +7,6 @@ import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../rendering/mock_canvas.dart';
-import '../rendering/rendering_tester.dart';
 
 class SillyBorder extends BoxBorder {
   @override
@@ -75,7 +74,7 @@ void main() {
     expect(BoxBorder.lerp(null, directionalWithTop10, 0.25), const BorderDirectional(top: BorderSide(width: 2.5)));
     expect(BoxBorder.lerp(directionalWithTop10, visualWithTop100, 0.25), const Border(top: BorderSide(width: 32.5)));
     expect(BoxBorder.lerp(visualWithSides10, directionalWithMagentaTop5, 0.25), visualWithSides10At75 + directionalWithMagentaTop5At25);
-    expect(BoxBorder.lerp(visualWithYellowTop5, directionalWithMagentaTop5, 0.25), Border(top: BorderSide(width: 5.0, color: Color.lerp(const Color(0xFFFFFF00), const Color(0xFFFF00FF), 0.25))));
+    expect(BoxBorder.lerp(visualWithYellowTop5, directionalWithMagentaTop5, 0.25), Border(top: BorderSide(width: 5.0, color: Color.lerp(const Color(0xFFFFFF00), const Color(0xFFFF00FF), 0.25)!)));
     expect(BoxBorder.lerp(visualWithSides10, directionalWithSides10, 0.25), visualWithSides10At50);
     expect(BoxBorder.lerp(visualWithYellowTop5, directionalWithSides10, 0.25), visualWithYellowTop5At75 + directionalWithSides10At25);
     expect(() => BoxBorder.lerp(SillyBorder(), const Border(), 0.25), throwsFlutterError);
@@ -87,7 +86,7 @@ void main() {
     expect(BoxBorder.lerp(null, directionalWithTop10, 0.75), const BorderDirectional(top: BorderSide(width: 7.5)));
     expect(BoxBorder.lerp(directionalWithTop10, visualWithTop100, 0.75), const Border(top: BorderSide(width: 77.5)));
     expect(BoxBorder.lerp(visualWithSides10, directionalWithMagentaTop5, 0.75), visualWithSides10At25 + directionalWithMagentaTop5At75);
-    expect(BoxBorder.lerp(visualWithYellowTop5, directionalWithMagentaTop5, 0.75), Border(top: BorderSide(width: 5.0, color: Color.lerp(const Color(0xFFFFFF00), const Color(0xFFFF00FF), 0.75))));
+    expect(BoxBorder.lerp(visualWithYellowTop5, directionalWithMagentaTop5, 0.75), Border(top: BorderSide(width: 5.0, color: Color.lerp(const Color(0xFFFFFF00), const Color(0xFFFF00FF), 0.75)!)));
     expect(BoxBorder.lerp(visualWithSides10, directionalWithSides10, 0.75), directionalWithSides10At50);
     expect(BoxBorder.lerp(visualWithYellowTop5, directionalWithSides10, 0.75), visualWithYellowTop5At25 + directionalWithSides10At75);
     expect(() => BoxBorder.lerp(SillyBorder(), const Border(), 0.75), throwsFlutterError);
@@ -118,7 +117,7 @@ void main() {
   });
 
   test('BoxBorder.lerp throws correct FlutterError message', () {
-    FlutterError error;
+    late FlutterError error;
     try {
       BoxBorder.lerp(SillyBorder(), const Border(), 2.0);
     } on FlutterError catch (e) {
@@ -172,7 +171,7 @@ void main() {
           const Offset(111.0, 190.0),
           const Offset(110.0, 191.0),
           const Offset(111.0, 191.0),
-          const Offset(0.0, 0.0),
+          Offset.zero,
           const Offset(-10.0, -10.0),
           const Offset(0.0, -10.0),
           const Offset(-10.0, 0.0),
@@ -202,7 +201,7 @@ void main() {
           const Offset(50.0, 50.0),
           const Offset(50.0, 60.0),
           const Offset(60.0, 60.0),
-          const Offset(0.0, 0.0),
+          Offset.zero,
           const Offset(-10.0, -10.0),
           const Offset(0.0, -10.0),
           const Offset(-10.0, 0.0),
@@ -236,7 +235,7 @@ void main() {
           const Offset(111.0, 190.0),
           const Offset(110.0, 191.0),
           const Offset(111.0, 191.0),
-          const Offset(0.0, 0.0),
+          Offset.zero,
           const Offset(-10.0, -10.0),
           const Offset(0.0, -10.0),
           const Offset(-10.0, 0.0),
@@ -271,7 +270,7 @@ void main() {
           const Offset(50.0, 75.0),
           const Offset(55.0, 70.0),
           const Offset(60.0, 60.0),
-          const Offset(0.0, 0.0),
+          Offset.zero,
           const Offset(-10.0, -10.0),
           const Offset(0.0, -10.0),
           const Offset(-10.0, 0.0),
@@ -303,7 +302,7 @@ void main() {
           const Offset(111.0, 190.0),
           const Offset(110.0, 191.0),
           const Offset(111.0, 191.0),
-          const Offset(0.0, 0.0),
+          Offset.zero,
           const Offset(-10.0, -10.0),
           const Offset(0.0, -10.0),
           const Offset(-10.0, 0.0),
@@ -333,7 +332,7 @@ void main() {
           const Offset(40.0, 60.0),
           const Offset(50.0, 60.0),
           const Offset(60.0, 60.0),
-          const Offset(0.0, 0.0),
+          Offset.zero,
           const Offset(-10.0, -10.0),
           const Offset(0.0, -10.0),
           const Offset(-10.0, 0.0),
@@ -349,14 +348,7 @@ void main() {
         ],
       ),
     );
-  }, skip: isBrowser);
-
-  test('BorderDirectional constructor', () {
-    expect(() => BorderDirectional(top: nonconst(null)), throwsAssertionError);
-    expect(() => BorderDirectional(start: nonconst(null)), throwsAssertionError);
-    expect(() => BorderDirectional(end: nonconst(null)), throwsAssertionError);
-    expect(() => BorderDirectional(bottom: nonconst(null)), throwsAssertionError);
-  }, skip: isBrowser);
+  });
 
   test('BorderDirectional.merge', () {
     const BorderSide magenta3 = BorderSide(color: Color(0xFFFF00FF), width: 3.0);
@@ -395,7 +387,7 @@ void main() {
       ),
       throwsAssertionError,
     );
-  }, skip: isBrowser);
+  });
 
   test('BorderDirectional.dimensions', () {
     expect(
@@ -407,7 +399,7 @@ void main() {
       ).dimensions,
       const EdgeInsetsDirectional.fromSTEB(2.0, 3.0, 7.0, 5.0),
     );
-  }, skip: isBrowser);
+  });
 
   test('BorderDirectional.isUniform', () {
     expect(
@@ -466,9 +458,9 @@ void main() {
     );
     expect(
       const BorderDirectional(
-        top: BorderSide(style: BorderStyle.none, width: 0.0),
-        start: BorderSide(style: BorderStyle.none, width: 0.0),
-        end: BorderSide(style: BorderStyle.none, width: 0.0),
+        top: BorderSide.none,
+        start: BorderSide.none,
+        end: BorderSide.none,
         bottom: BorderSide.none,
       ).isUniform,
       true,
@@ -477,7 +469,7 @@ void main() {
       const BorderDirectional().isUniform,
       true,
     );
-  }, skip: isBrowser);
+  });
 
   test('BorderDirectional.add - all directional', () {
     const BorderSide magenta3 = BorderSide(color: Color(0xFFFF00FF), width: 3.0);
@@ -502,7 +494,7 @@ void main() {
     );
     expect(
       const BorderDirectional(start: magenta3) + const BorderDirectional(start: yellow2),
-      isNot(isInstanceOf<BorderDirectional>()), // see shape_border_test.dart for better tests of this case
+      isNot(isA<BorderDirectional>()), // see shape_border_test.dart for better tests of this case
     );
     const BorderDirectional b3 = BorderDirectional(top: magenta3);
     const BorderDirectional b6 = BorderDirectional(top: magenta6);
@@ -513,7 +505,7 @@ void main() {
     expect(bZ + bZ, bZ);
     expect(b0 + bZ, bZ);
     expect(bZ + b0, bZ);
-  }, skip: isBrowser);
+  });
 
   test('BorderDirectional.add', () {
     const BorderSide side1 = BorderSide(color: Color(0x11111111));
@@ -565,7 +557,7 @@ void main() {
     expect((borderDirectionalWithStart + borderWithoutSides).toString(), '${const BorderDirectional(start: side1, top: doubleSide2, bottom: doubleSide2)}');
     expect((borderDirectionalWithEnd + borderWithoutSides).toString(), '${const BorderDirectional(end: side1, top: doubleSide2, bottom: doubleSide2)}');
     expect((borderDirectionalWithoutSides + borderWithoutSides).toString(), '${const Border(top: doubleSide2, bottom: doubleSide2)}');
-  }, skip: isBrowser);
+  });
 
   test('BorderDirectional.scale', () {
     const BorderSide magenta3 = BorderSide(color: Color(0xFFFF00FF), width: 3.0);
@@ -579,7 +571,7 @@ void main() {
     expect(bY0.scale(3.0), bY0);
     const BorderDirectional bY2 = BorderDirectional(top: yellow2);
     expect(bY2.scale(0.0), bY0);
-  }, skip: isBrowser);
+  });
 
   test('BorderDirectional.lerp', () {
     const BorderDirectional directionalWithTop10 = BorderDirectional(top: BorderSide(width: 10.0));
@@ -653,7 +645,7 @@ void main() {
       },
       paintsAssertion, // no TextDirection
     );
-  }, skip: isBrowser);
+  });
 
   test('BorderDirectional hashCode', () {
     final BorderSide side = BorderSide(width: nonconst(2.0));
@@ -703,5 +695,5 @@ void main() {
     expect(decoration2.padding, const EdgeInsetsDirectional.fromSTEB(2.0, 0.0, 0.0, 0.0));
     expect(decoration2.scale(2.0), decoration4);
     expect(BoxDecoration.lerp(decoration2, decoration6, 0.5), decoration4);
-  }, skip: isBrowser);
+  });
 }

@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:flutter/rendering.dart';
-import '../flutter_test_alternative.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import 'rendering_tester.dart';
 
@@ -69,5 +69,5 @@ void main() {
 
     expect(positioner.size.width, equals(200.0));
     expect(positioner.size.height, equals(200.0));
-  }, skip: isBrowser);
+  });
 }

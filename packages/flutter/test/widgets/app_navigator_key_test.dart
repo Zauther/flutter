@@ -5,7 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
 
-final RouteFactory generateRoute = (RouteSettings settings) => PageRouteBuilder<void>(
+Route<void> generateRoute(RouteSettings settings) => PageRouteBuilder<void>(
   settings: settings,
   pageBuilder: (BuildContext context, Animation<double> animation1, Animation<double> animation2) {
     return const Placeholder();
@@ -20,7 +20,7 @@ void main() {
       color: const Color(0xFF112233),
       onGenerateRoute: generateRoute,
     ));
-    expect(key.currentState, isInstanceOf<NavigatorState>());
+    expect(key.currentState, isA<NavigatorState>());
     await tester.pumpWidget(WidgetsApp(
       color: const Color(0xFF112233),
       onGenerateRoute: generateRoute,
@@ -31,6 +31,6 @@ void main() {
       color: const Color(0xFF112233),
       onGenerateRoute: generateRoute,
     ));
-    expect(key.currentState, isInstanceOf<NavigatorState>());
+    expect(key.currentState, isA<NavigatorState>());
   });
 }

@@ -2,9 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
-import '../flutter_test_alternative.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import 'rendering_tester.dart';
 
@@ -60,7 +59,7 @@ void main() {
       child: repaintBoundary,
     );
     layout(opacity, phase: EnginePhase.flushSemantics);
-    expect(repaintBoundary.debugLayer, isInstanceOf<OffsetLayer>());
+    expect(repaintBoundary.debugLayer, isA<OffsetLayer>());
   });
 
   test('Framework does not create an OffsetLayer for a non-repaint boundary', () {
@@ -80,7 +79,7 @@ void main() {
       child: compositedBox,
     );
     layout(opacity, phase: EnginePhase.flushSemantics);
-    expect(compositedBox.debugLayer, isInstanceOf<OpacityLayer>());
+    expect(compositedBox.debugLayer, isA<OpacityLayer>());
   });
 
   test('Framework ensures repaint boundary layer is not overwritten', () {
@@ -90,9 +89,9 @@ void main() {
       child: faultyRenderObject,
     );
 
-    FlutterErrorDetails error;
+    late FlutterErrorDetails error;
     layout(opacity, phase: EnginePhase.flushSemantics, onErrors: () {
-      error = renderer.takeFlutterErrorDetails();
+      error = renderer.takeFlutterErrorDetails()!;
     });
     expect('${error.exception}', contains('Attempted to set a layer to a repaint boundary render object.'));
   });
